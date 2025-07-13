@@ -5,7 +5,7 @@ import Image from 'next/image';
 interface MemoryCardProps {
   memory: Memory;
   onEdit: (memory: Memory) => void;
-  onDelete: (id: string, imageUrl?: string, videoUrl?: string) => void;
+  onDelete: (id: string, imageUrl?: string, videoUrl?: string, imagePublicId?: string, videoPublicId?: string) => void;
 }
 
 const MemoryCard = ({ memory, onEdit, onDelete }: MemoryCardProps) => {
@@ -20,7 +20,7 @@ const MemoryCard = ({ memory, onEdit, onDelete }: MemoryCardProps) => {
       )}
       {memory.videoUrl && (
         <div className="mb-4">
-          <video controls src={memory.videoUrl} className="rounded-md w-full" />
+          <video controls src={memory.videoUrl} className="rounded-md w-full" data-testid="memory-video" />
         </div>
       )}
       <div className="flex justify-end space-x-2">
@@ -31,7 +31,7 @@ const MemoryCard = ({ memory, onEdit, onDelete }: MemoryCardProps) => {
           Edit
         </button>
         <button
-          onClick={() => onDelete(memory.id!, memory.imageUrl, memory.videoUrl)}
+          onClick={() => onDelete(memory.id!, memory.imageUrl, memory.videoUrl, memory.imagePublicId, memory.videoPublicId)}
           className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
         >
           Delete

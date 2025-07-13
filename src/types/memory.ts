@@ -4,6 +4,8 @@ export interface Memory {
   title: string;
   description: string;
   imageUrl?: string;
+  imagePublicId?: string;
   videoUrl?: string;
+  videoPublicId?: string;
   createdAt: Date;
 }

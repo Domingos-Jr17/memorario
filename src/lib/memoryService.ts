@@ -1,4 +1,4 @@
-import { db, storage, auth } from './firebase';
+import { db, auth } from './firebase';
 import {
   collection,
   addDoc,
@@ -10,20 +10,47 @@ import {
   deleteDoc,
   orderBy,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Memory } from '@/types/memory';
 
 const memoriesCollectionRef = collection(db, 'memories');
 
-const uploadFile = async (file: File, userId: string, type: 'image' | 'video') => {
-  const fileRef = ref(storage, `${userId}/${type}s/${file.name}_${Date.now()}`);
-  const snapshot = await uploadBytes(fileRef, file);
-  return getDownloadURL(snapshot.ref);
+interface CloudinaryUploadResult {
+  secure_url: string;
+  public_id: string;
+}
+
+const uploadFileToCloudinary = async (file: File): Promise<CloudinaryUploadResult> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch('/api/upload-cloudinary', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to upload file to Cloudinary');
+  }
+
+  return response.json();
 };
 
-const deleteFile = async (url: string) => {
-  const fileRef = ref(storage, url);
-  await deleteObject(fileRef);
+const deleteFileFromCloudinary = async (publicId: string) => {
+  const response = await fetch('/api/upload-cloudinary', {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ publicId }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to delete file from Cloudinary');
+  }
+
+  return response.json();
 };
 
 export const addMemory = async (
@@ -36,13 +63,19 @@ export const addMemory = async (
   if (!user) throw new Error('User not authenticated');
 
   let imageUrl: string | undefined;
+  let imagePublicId: string | undefined;
   let videoUrl: string | undefined;
+  let videoPublicId: string | undefined;
 
   if (imageFile) {
-    imageUrl = await uploadFile(imageFile, user.uid, 'image');
+    const result = await uploadFileToCloudinary(imageFile);
+    imageUrl = result.secure_url;
+    imagePublicId = result.public_id;
   }
   if (videoFile) {
-    videoUrl = await uploadFile(videoFile, user.uid, 'video');
+    const result = await uploadFileToCloudinary(videoFile);
+    videoUrl = result.secure_url;
+    videoPublicId = result.public_id;
   }
 
   const newMemory: Omit<Memory, 'id'> = {
@@ -51,7 +84,9 @@ export const addMemory = async (
     description,
     createdAt: new Date(),
     ...(imageUrl && { imageUrl }),
+    ...(imagePublicId && { imagePublicId }),
     ...(videoUrl && { videoUrl }),
+    ...(videoPublicId && { videoPublicId }),
   };
 
   await addDoc(memoriesCollectionRef, newMemory);
@@ -80,46 +115,60 @@ export const updateMemory = async (
   imageFile?: File,
   videoFile?: File,
   currentImageUrl?: string,
-  currentVideoUrl?: string
+  currentImagePublicId?: string,
+  currentVideoUrl?: string,
+  currentVideoPublicId?: string
 ) => {
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
 
   const memoryRef = doc(db, 'memories', id);
   let imageUrl: string | undefined = currentImageUrl;
+  let imagePublicId: string | undefined = currentImagePublicId;
   let videoUrl: string | undefined = currentVideoUrl;
+  let videoPublicId: string | undefined = currentVideoPublicId;
 
+  // Handle image update
   if (imageFile) {
-    if (currentImageUrl) await deleteFile(currentImageUrl);
-    imageUrl = await uploadFile(imageFile, user.uid, 'image');
-  } else if (currentImageUrl && !imageFile) {
-    // If image was removed
+    if (currentImagePublicId) await deleteFileFromCloudinary(currentImagePublicId);
+    const result = await uploadFileToCloudinary(imageFile);
+    imageUrl = result.secure_url;
+    imagePublicId = result.public_id;
+  } else if (imageFile === null && currentImagePublicId) {
+    // If imageFile is explicitly set to null (e.g., user cleared the input), delete the old image
     imageUrl = undefined;
-    await deleteFile(currentImageUrl);
+    imagePublicId = undefined;
+    await deleteFileFromCloudinary(currentImagePublicId);
   }
 
+  // Handle video update
   if (videoFile) {
-    if (currentVideoUrl) await deleteFile(currentVideoUrl);
-    videoUrl = await uploadFile(videoFile, user.uid, 'video');
-  } else if (currentVideoUrl && !videoFile) {
-    // If video was removed
+    if (currentVideoPublicId) await deleteFileFromCloudinary(currentVideoPublicId);
+    const result = await uploadFileToCloudinary(videoFile);
+    videoUrl = result.secure_url;
+    videoPublicId = result.public_id;
+  } else if (videoFile === null && currentVideoPublicId) {
+    // If videoFile is explicitly set to null, delete the old video
     videoUrl = undefined;
-    await deleteFile(currentVideoUrl);
+    videoPublicId = undefined;
+    await deleteFileFromCloudinary(currentVideoPublicId);
   }
 
   const updatedData: Partial<Memory> = {
     title,
     description,
     ...(imageUrl !== undefined && { imageUrl }),
+    ...(imagePublicId !== undefined && { imagePublicId }),
     ...(videoUrl !== undefined && { videoUrl }),
+    ...(videoPublicId !== undefined && { videoPublicId }),
   };
 
   await updateDoc(memoryRef, updatedData);
 };
 
-export const deleteMemory = async (id: string, imageUrl?: string, videoUrl?: string) => {
+export const deleteMemory = async (id: string, imageUrl?: string, videoUrl?: string, imagePublicId?: string, videoPublicId?: string) => {
   const memoryRef = doc(db, 'memories', id);
-  if (imageUrl) await deleteFile(imageUrl);
-  if (videoUrl) await deleteFile(videoUrl);
+  if (imagePublicId) await deleteFileFromCloudinary(imagePublicId);
+  if (videoPublicId) await deleteFileFromCloudinary(videoPublicId);
   await deleteDoc(memoryRef);
 };
