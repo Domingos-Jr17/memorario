@@ -7,7 +7,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBch88N9OV8adEFtSH_ogko94sYQikI8yA",
   authDomain: "memorario-3b941.firebaseapp.com",
   projectId: "memorario-3b941",
-  storageBucket: "memorario-3b941.firebasestorage.app",
+  storageBucket: "memorario-3b941.appspot.com", // corrigido
   messagingSenderId: "377550151646",
   appId: "1:377550151646:web:a2837ddd65c2d545c2874f",
   measurementId: "G-1QVVGKL2KW"

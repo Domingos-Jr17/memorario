@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { db, auth } from './firebase';
 import {
   collection,
@@ -10,8 +11,10 @@ import {
   deleteDoc,
   orderBy,
 } from 'firebase/firestore';
+
 import { Memory } from '@/types/memory';
 
+// Referência à coleção
 const memoriesCollectionRef = collection(db, 'memories');
 
 interface CloudinaryUploadResult {
@@ -19,6 +22,7 @@ interface CloudinaryUploadResult {
   public_id: string;
 }
 
+// 📤 Upload de arquivo para Cloudinary
 const uploadFileToCloudinary = async (file: File): Promise<CloudinaryUploadResult> => {
   const formData = new FormData();
   formData.append('file', file);
@@ -36,12 +40,11 @@ const uploadFileToCloudinary = async (file: File): Promise<CloudinaryUploadResul
   return response.json();
 };
 
+// 🗑️ Remoção de arquivo do Cloudinary
 const deleteFileFromCloudinary = async (publicId: string) => {
   const response = await fetch('/api/upload-cloudinary', {
     method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ publicId }),
   });
 
@@ -53,45 +56,50 @@ const deleteFileFromCloudinary = async (publicId: string) => {
   return response.json();
 };
 
+// ✅ 1. Adicionar nova memória
 export const addMemory = async (
   title: string,
-  description: string,
-  imageFile?: File,
-  videoFile?: File
+  description?: string,
+  imageFiles?: File[],
+  videoFiles?: File[]
 ) => {
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
 
-  let imageUrl: string | undefined;
-  let imagePublicId: string | undefined;
-  let videoUrl: string | undefined;
-  let videoPublicId: string | undefined;
+  const images: { url: string; publicId: string }[] = [];
+  const videos: { url: string; publicId: string }[] = [];
 
-  if (imageFile) {
-    const result = await uploadFileToCloudinary(imageFile);
-    imageUrl = result.secure_url;
-    imagePublicId = result.public_id;
-  }
-  if (videoFile) {
-    const result = await uploadFileToCloudinary(videoFile);
-    videoUrl = result.secure_url;
-    videoPublicId = result.public_id;
+  // Upload de imagens
+  if (imageFiles?.length) {
+    for (const file of imageFiles) {
+      const result = await uploadFileToCloudinary(file);
+      images.push({ url: result.secure_url, publicId: result.public_id });
+    }
   }
 
-  const newMemory: Omit<Memory, 'id'> = {
+  // Upload de vídeos
+  if (videoFiles?.length) {
+    for (const file of videoFiles) {
+      const result = await uploadFileToCloudinary(file);
+      videos.push({ url: result.secure_url, publicId: result.public_id });
+    }
+  }
+
+  // Dados a serem salvos no Firestore
+  const newMemoryData: Partial<Omit<Memory, 'id'>> = {
     userId: user.uid,
     title,
     description,
     createdAt: new Date(),
-    ...(imageUrl && { imageUrl }),
-    ...(imagePublicId && { imagePublicId }),
-    ...(videoUrl && { videoUrl }),
-    ...(videoPublicId && { videoPublicId }),
   };
 
-  await addDoc(memoriesCollectionRef, newMemory);
+  if (images.length > 0) newMemoryData.images = images;
+  if (videos.length > 0) newMemoryData.videos = videos;
+
+  await addDoc(memoriesCollectionRef, newMemoryData as Omit<Memory, 'id'>);
 };
 
+// ✅ 2. Obter todas memórias do utilizador autenticado
 export const getMemories = async (): Promise<Memory[]> => {
   const user = auth.currentUser;
   if (!user) return [];
@@ -101,74 +109,94 @@ export const getMemories = async (): Promise<Memory[]> => {
     where('userId', '==', user.uid),
     orderBy('createdAt', 'desc')
   );
+
   const querySnapshot = await getDocs(q);
+
   return querySnapshot.docs.map((doc) => ({
     id: doc.id,
-    ...(doc.data() as Omit<Memory, 'id'>),
+    ...doc.data() as Omit<Memory, 'id'>,
+    createdAt: doc.data().createdAt.toDate(), // Converter Timestamp para Date
   }));
 };
 
+// ✅ 3. Atualizar memória existente
 export const updateMemory = async (
   id: string,
   title: string,
   description: string,
-  imageFile?: File,
-  videoFile?: File,
-  currentImageUrl?: string,
-  currentImagePublicId?: string,
-  currentVideoUrl?: string,
-  currentVideoPublicId?: string
+  imageFiles?: File[] | null,
+  videoFiles?: File[] | null,
+  existingImages?: Array<{ url?: string; publicId?: string }>,
+  existingVideos?: Array<{ url?: string; publicId?: string }>
 ) => {
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
 
   const memoryRef = doc(db, 'memories', id);
-  let imageUrl: string | undefined = currentImageUrl;
-  let imagePublicId: string | undefined = currentImagePublicId;
-  let videoUrl: string | undefined = currentVideoUrl;
-  let videoPublicId: string | undefined = currentVideoPublicId;
 
-  // Handle image update
-  if (imageFile) {
-    if (currentImagePublicId) await deleteFileFromCloudinary(currentImagePublicId);
-    const result = await uploadFileToCloudinary(imageFile);
-    imageUrl = result.secure_url;
-    imagePublicId = result.public_id;
-  } else if (imageFile === null && currentImagePublicId) {
-    // If imageFile is explicitly set to null (e.g., user cleared the input), delete the old image
-    imageUrl = undefined;
-    imagePublicId = undefined;
-    await deleteFileFromCloudinary(currentImagePublicId);
+  let images: { url: string; publicId: string }[] = existingImages?.filter(img => img.url && img.publicId) as any[] || [];
+  let videos: { url: string; publicId: string }[] = existingVideos?.filter(vid => vid.url && vid.publicId) as any[] || [];
+
+  // Substituir imagens
+  if (imageFiles?.length) {
+    for (const img of images) {
+      if (img.publicId) await deleteFileFromCloudinary(img.publicId);
+    }
+    images = [];
+    for (const file of imageFiles) {
+      const result = await uploadFileToCloudinary(file);
+      images.push({ url: result.secure_url, publicId: result.public_id });
+    }
+  } else if (imageFiles === null) {
+    for (const img of images) {
+      if (img.publicId) await deleteFileFromCloudinary(img.publicId);
+    }
+    images = [];
   }
 
-  // Handle video update
-  if (videoFile) {
-    if (currentVideoPublicId) await deleteFileFromCloudinary(currentVideoPublicId);
-    const result = await uploadFileToCloudinary(videoFile);
-    videoUrl = result.secure_url;
-    videoPublicId = result.public_id;
-  } else if (videoFile === null && currentVideoPublicId) {
-    // If videoFile is explicitly set to null, delete the old video
-    videoUrl = undefined;
-    videoPublicId = undefined;
-    await deleteFileFromCloudinary(currentVideoPublicId);
+  // Substituir vídeos
+  if (videoFiles?.length) {
+    for (const vid of videos) {
+      if (vid.publicId) await deleteFileFromCloudinary(vid.publicId);
+    }
+    videos = [];
+    for (const file of videoFiles) {
+      const result = await uploadFileToCloudinary(file);
+      videos.push({ url: result.secure_url, publicId: result.public_id });
+    }
+  } else if (videoFiles === null) {
+    for (const vid of videos) {
+      if (vid.publicId) await deleteFileFromCloudinary(vid.publicId);
+    }
+    videos = [];
   }
 
   const updatedData: Partial<Memory> = {
     title,
     description,
-    ...(imageUrl !== undefined && { imageUrl }),
-    ...(imagePublicId !== undefined && { imagePublicId }),
-    ...(videoUrl !== undefined && { videoUrl }),
-    ...(videoPublicId !== undefined && { videoPublicId }),
   };
+
+  if (images.length > 0) updatedData.images = images;
+  if (videos.length > 0) updatedData.videos = videos;
 
   await updateDoc(memoryRef, updatedData);
 };
 
-export const deleteMemory = async (id: string, imageUrl?: string, videoUrl?: string, imagePublicId?: string, videoPublicId?: string) => {
+// ✅ 4. Deletar memória e arquivos associados
+export const deleteMemory = async (
+  id: string,
+  images?: Array<{ url: string; publicId: string }>,
+  videos?: Array<{ url: string; publicId: string }>
+) => {
   const memoryRef = doc(db, 'memories', id);
-  if (imagePublicId) await deleteFileFromCloudinary(imagePublicId);
-  if (videoPublicId) await deleteFileFromCloudinary(videoPublicId);
+
+  for (const img of images || []) {
+    await deleteFileFromCloudinary(img.publicId);
+  }
+
+  for (const vid of videos || []) {
+    await deleteFileFromCloudinary(vid.publicId);
+  }
+
   await deleteDoc(memoryRef);
 };
