@@ -17,59 +17,50 @@ import {
 } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+// 1. Definindo o esquema de validação com Zod
+const signupSchema = z.object({
+  username: z.string().min(1, "Username is required."),
+  email: z.string().min(1, "Email is required.").email("Invalid email address."),
+  password: z.string().min(6, "Password must be at least 6 characters."),
+  confirmPassword: z.string().min(1, "Confirm Password is required."),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match.",
+  path: ["confirmPassword"],
+});
+
+// 2. Derivar o tipo TS automaticamente
+type SignupFormInputs = z.infer<typeof signupSchema>;
+
 export default function SignupPage() {
   const { signup, googleSignIn } = useAuth();
   const router = useRouter();
 
-  // Estado dos campos
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const [errors, setErrors] = useState<{
-    username?: string;
-    email?: string;
-    password?: string;
-    confirmPassword?: string;
-  }>({});
+  // 3. Inicializando react-hook-form com zodResolver para validar usando o esquema
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignupFormInputs>({
+    resolver: zodResolver(signupSchema),
+  });
 
-  // Validação dos campos
-  const validateForm = (): boolean => {
-    const newErrors: typeof errors = {};
-
-    if (!username.trim()) newErrors.username = 'Username is required.';
-    if (!email.trim()) newErrors.email = 'Email is required.';
-    else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Invalid email address.';
-    if (password.length < 6) newErrors.password = 'Password must be at least 6 characters.';
-    if (password !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match.';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Submissão do formulário
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!validateForm()) {
-      toast.error('Please fix the errors before submitting.');
-      return;
-    }
-
+  // 4. Função para lidar com o submit validado
+  const onSubmit = async (data: SignupFormInputs) => {
     setIsSubmitting(true);
     try {
-      await signup(email, password, username);
+      await signup(data.email, data.password, data.username);
       toast.success('Account created! Please verify your email.');
-      router.push('/verify-email');
+      setTimeout(() => router.push('/verify-email'), 1000); // Atraso de 1s
     } catch (err: any) {
       const message = err?.message ?? 'Signup failed.';
-      setError(message);
       toast.error(`Signup failed: ${message}`);
     } finally {
       setIsSubmitting(false);
@@ -78,15 +69,13 @@ export default function SignupPage() {
 
   const handleGoogleSignIn = async () => {
     setIsSubmitting(true);
-    setError(null);
 
     try {
       await googleSignIn();
       toast.success('Signed in with Google!');
-      router.push('/');
+      setTimeout(() => router.push('/'), 1000); // Atraso de 1s
     } catch (err: any) {
       const message = err?.message ?? 'Google Sign-in failed';
-      setError(message);
       toast.error(message);
     } finally {
       setIsSubmitting(false);
@@ -105,20 +94,19 @@ export default function SignupPage() {
           <h2 className="text-3xl font-extrabold text-gray-900">Create your account</h2>
         </div>
 
-        <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+        <form className="space-y-5" onSubmit={handleSubmit(onSubmit)} noValidate>
           {/* Username */}
           <div>
             <input
               id="username"
               type="text"
               placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
               className={`w-full px-3 py-2 border ${
                 errors.username ? 'border-red-500' : 'border-gray-300'
               } rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+              {...register("username")}
             />
-            {errors.username && <p className="text-sm text-red-600 mt-1">{errors.username}</p>}
+            {errors.username && <p className="text-sm text-red-600 mt-1">{errors.username.message}</p>}
           </div>
 
           {/* Email */}
@@ -130,13 +118,12 @@ export default function SignupPage() {
               id="email"
               type="email"
               placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               className={`w-full pl-10 pr-3 py-2 border ${
                 errors.email ? 'border-red-500' : 'border-gray-300'
               } rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+              {...register("email")}
             />
-            {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email}</p>}
+            {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>}
           </div>
 
           {/* Password */}
@@ -148,11 +135,10 @@ export default function SignupPage() {
               id="password"
               type={showPassword ? 'text' : 'password'}
               placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               className={`w-full pl-10 pr-10 py-2 border ${
                 errors.password ? 'border-red-500' : 'border-gray-300'
               } rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+              {...register("password")}
             />
             <button
               type="button"
@@ -162,7 +148,7 @@ export default function SignupPage() {
             >
               {showPassword ? <EyeOff className="h-5 w-5 text-gray-500" /> : <Eye className="h-5 w-5 text-gray-500" />}
             </button>
-            {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password}</p>}
+            {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password.message}</p>}
           </div>
 
           {/* Confirm Password */}
@@ -174,11 +160,10 @@ export default function SignupPage() {
               id="confirmPassword"
               type={showConfirmPassword ? 'text' : 'password'}
               placeholder="Confirm Password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
               className={`w-full pl-10 pr-10 py-2 border ${
                 errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
               } rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+              {...register("confirmPassword")}
             />
             <button
               type="button"
@@ -188,11 +173,11 @@ export default function SignupPage() {
             >
               {showConfirmPassword ? <EyeOff className="h-5 w-5 text-gray-500" /> : <Eye className="h-5 w-5 text-gray-500" />}
             </button>
-            {errors.confirmPassword && <p className="text-sm text-red-600 mt-1">{errors.confirmPassword}</p>}
+            {errors.confirmPassword && <p className="text-sm text-red-600 mt-1">{errors.confirmPassword.message}</p>}
           </div>
 
           {/* Global Error */}
-          {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+          {/* {error && <p className="text-sm text-red-600 text-center">{error}</p>} */}
 
           {/* Submit */}
           <motion.button

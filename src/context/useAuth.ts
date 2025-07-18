@@ -10,6 +10,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   googleSignIn: () => Promise<void>;
   resendVerificationEmail: () => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);

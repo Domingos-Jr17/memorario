@@ -1,3 +1,4 @@
+
 # Gemini Customization (`GEMINI.md`)
 
 This file helps customize Gemini's behavior for this project.

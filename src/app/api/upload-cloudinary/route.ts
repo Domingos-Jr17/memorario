@@ -4,9 +4,9 @@ import { NextResponse } from 'next/server';
 
 // Configurações do Cloudinary (assegure que suas variáveis de ambiente estejam corretas)
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
-  api_key: process.env.CLOUDINARY_API_KEY!,
-  api_secret: process.env.CLOUDINARY_API_SECRET!,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 type UploadResult = {
@@ -27,7 +27,7 @@ type UploadResult = {
   placeholder: boolean;
   url: string;
   secure_url: string;
-  // Outros campos podem ser adicionados conforme a resposta do Cloudinary
+
 };
 
 export async function POST(request: Request) {

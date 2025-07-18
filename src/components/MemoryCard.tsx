@@ -1,19 +1,22 @@
 import React, { useState, useMemo } from 'react';
-import { Memory } from '@/types/memory';
+import { Memory, Timestamp } from '@/types/memory';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Edit, Trash2, CalendarDays } from 'lucide-react';
 
 interface MemoryCardProps {
   memory: Memory;
-  onEdit: (memory: Memory) => void;
-  onDelete: (memory: Memory) => void;
+  onEdit?: (memory: Memory) => void;
+  onDelete?: (memory: Memory) => void;
 }
 
 const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onEdit, onDelete }) => {
   const createdAtDate = useMemo(() => {
     if (!memory.createdAt) return null;
-    return memory.createdAt instanceof Date ? memory.createdAt : new Date(memory.createdAt);
+    if (memory.createdAt instanceof Date) {
+      return memory.createdAt;
+    }
+    return (memory.createdAt as Timestamp).toDate();
   }, [memory.createdAt]);
 
   const formattedDate = createdAtDate ? createdAtDate.toLocaleDateString() : 'N/A';
@@ -58,7 +61,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onEdit, onDelete }) => 
         <time dateTime={createdAtDate?.toISOString() || undefined}>{formattedDate}</time>
       </p>
 
-      <p className="text-gray-700 mb-4 flex-grow text-base leading-relaxed">{memory.description}</p>
+      <div className="text-gray-700 mb-4 flex-grow text-base leading-relaxed ck-content" dangerouslySetInnerHTML={{ __html: memory.description || '' }} />
 
       {mediaItems.length > 0 && (
         <div className="relative w-full h-56 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center mb-4">

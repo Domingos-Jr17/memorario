@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { Toaster } from 'sonner'; // Import Toaster
 
 const geistSans = Geist({
@@ -52,11 +53,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://cdn.ckeditor.com/ckeditor5/44.3.0/decoupled-document/contents.css"
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>{children}</AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>{children}</AuthProvider>
+        </ErrorBoundary>
         <Toaster position="top-right" richColors /> {/* Add Toaster component */}
       </body>
     </html>

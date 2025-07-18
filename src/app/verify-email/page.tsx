@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/useAuth";
+import { auth } from '@/lib/firebase';
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -10,6 +13,7 @@ export default function VerifyEmailPage() {
   const router = useRouter();
   const [isSending, setIsSending] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
 
   // Redireciona se não estiver logado ou se já tiver verificado
   useEffect(() => {
@@ -22,12 +26,24 @@ export default function VerifyEmailPage() {
 
   // Reenvio do email
   const handleResend = async () => {
+    if (cooldown > 0) return;
+
     setIsSending(true);
     try {
       await resendVerificationEmail();
-      toast.success("Email de verificação enviado novamente!");
+      toast.success("Verification email sent again!");
+      setCooldown(60); // Inicia cooldown de 60 segundos
+      const timer = setInterval(() => {
+        setCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     } catch (error: any) {
-      toast.error(error.message || "Erro ao reenviar.");
+      toast.error(error.message || "Error resending email.");
     } finally {
       setIsSending(false);
     }
@@ -38,7 +54,7 @@ export default function VerifyEmailPage() {
     setIsRefreshing(true);
     try {
       await user?.reload(); // força o Firebase a atualizar o status
-      if (user?.emailVerified) {
+      if (auth.currentUser?.emailVerified) {
         toast.success("Email verificado com sucesso!");
         router.push("/");
       } else {
@@ -74,10 +90,18 @@ export default function VerifyEmailPage() {
 
         <button
           onClick={handleResend}
-          disabled={isSending}
-          className="w-full mb-4 bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition"
+          disabled={isSending || cooldown > 0}
+          className={`w-full mb-4 text-white py-2 rounded transition ${
+            isSending || cooldown > 0
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700"
+          }`}
         >
-          {isSending ? "Enviando..." : "Reenviar Email de Verificação"}
+          {isSending
+            ? "Sending..."
+            : cooldown > 0
+            ? `Resend in ${cooldown}s`
+            : "Resend Verification Email"}
         </button>
 
         <button

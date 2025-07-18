@@ -1,3 +1,7 @@
+export interface Timestamp {
+  toDate(): Date;
+}
+
 export interface Memory {
   id?: string;
   userId: string;
@@ -11,5 +15,6 @@ export interface Memory {
     url: string;
     publicId: string;
   }>;
-  createdAt: Date;
+  createdAt: Date | Timestamp;
+  isPublic?: boolean;
 }

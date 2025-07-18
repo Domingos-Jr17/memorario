@@ -13,13 +13,22 @@ import {
   User,
   updateProfile,
   sendEmailVerification,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { AuthContext } from './useAuth';
+
+import { toast } from 'sonner';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
 
   // Observa o estado de autenticação e atualiza o usuário
   useEffect(() => {
@@ -75,8 +84,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const currentUser = auth.currentUser;
       if (currentUser && !currentUser.emailVerified) {
         await sendEmailVerification(currentUser);
+      } else if (!currentUser) {
+        throw new Error('User not authenticated.');
       } else {
-        throw new Error('Usuário não autenticado ou email já verificado.');
+        throw new Error('Email already verified.');
       }
     } catch (err: any) {
       setError(err.message);
@@ -114,6 +125,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const sendPasswordReset = async (email: string): Promise<void> => {
+    setError(null);
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -125,6 +146,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout,
         googleSignIn,
         resendVerificationEmail,
+        sendPasswordReset,
       }}
     >
       {children}
