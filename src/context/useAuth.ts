@@ -11,6 +11,7 @@ interface AuthContextType {
   googleSignIn: () => Promise<void>;
   resendVerificationEmail: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
+  isAdmin: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);

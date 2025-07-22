@@ -19,10 +19,13 @@ import { AuthContext } from './useAuth';
 
 import { toast } from 'sonner';
 
+const ADMIN_EMAIL = 'admin@example.com'; // Replace with your actual admin email
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (error) {
@@ -34,6 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      setIsAdmin(currentUser?.email === ADMIN_EMAIL);
       setLoading(false);
     });
     return () => unsubscribe();
@@ -147,6 +151,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         googleSignIn,
         resendVerificationEmail,
         sendPasswordReset,
+        isAdmin,
       }}
     >
       {children}

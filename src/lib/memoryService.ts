@@ -12,6 +12,7 @@ import {
   orderBy,
   limit,
   startAfter,
+  getDoc,
 } from 'firebase/firestore';
 
 import { Memory } from '@/types/memory';
@@ -64,7 +65,8 @@ export const addMemory = async (
   description?: string,
   isPublic?: boolean,
   imageFiles?: File[],
-  videoFiles?: File[]
+  videoFiles?: File[],
+  tags?: string[]
 ) => {
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -95,6 +97,7 @@ export const addMemory = async (
     description,
     isPublic: isPublic || false,
     createdAt: new Date(),
+    tags: tags || [],
   };
 
   if (images.length > 0) newMemoryData.images = images;
@@ -174,7 +177,8 @@ export const updateMemory = async (
   imageFiles?: File[] | null,
   videoFiles?: File[] | null,
   existingImages?: Array<{ url?: string; publicId?: string }>,
-  existingVideos?: Array<{ url?: string; publicId?: string }>
+  existingVideos?: Array<{ url?: string; publicId?: string }>,
+  tags?: string[]
 ) => {
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -220,6 +224,7 @@ export const updateMemory = async (
     isPublic,
     images: newImages,
     videos: newVideos,
+    tags: tags || [],
   };
 
   await updateDoc(memoryRef, updatedData);
@@ -256,4 +261,72 @@ export const deleteMemory = async (
     // Optionally re-throw the error or handle it as needed
     throw new Error("Failed to delete memory.");
   }
+};
+
+// ✅ 5. Toggle Like
+export const toggleLike = async (memoryId: string, userId: string) => {
+  const memoryRef = doc(db, 'memories', memoryId);
+  const memorySnap = await getDoc(memoryRef);
+
+  if (!memorySnap.exists()) {
+    throw new Error('Memory not found');
+  }
+
+  const memoryData = memorySnap.data() as Memory;
+  let currentLikes = memoryData.likes || [];
+
+  if (currentLikes.includes(userId)) {
+    // Unlike
+    currentLikes = currentLikes.filter(id => id !== userId);
+  } else {
+    // Like
+    currentLikes.push(userId);
+  }
+
+  await updateDoc(memoryRef, { likes: currentLikes });
+};
+
+// ✅ 6. Add Comment
+export const addComment = async (memoryId: string, comment: Comment) => {
+  const memoryRef = doc(db, 'memories', memoryId);
+  const memorySnap = await getDoc(memoryRef);
+
+  if (!memorySnap.exists()) {
+    throw new Error('Memory not found');
+  }
+
+  const memoryData = memorySnap.data() as Memory;
+  const currentComments = memoryData.comments || [];
+
+  await updateDoc(memoryRef, { comments: [...currentComments, comment] });
+};
+
+// ✅ 7. Obter todas as memórias para o Admin
+export const getAllMemoriesForAdmin = async (pageSize: number = 10, lastDoc?: any): Promise<{ memories: Memory[]; lastVisible: any }> => {
+  let q = query(
+    memoriesCollectionRef,
+    orderBy('createdAt', 'desc'),
+    limit(pageSize)
+  );
+
+  if (lastDoc) {
+    q = query(q, startAfter(lastDoc));
+  }
+
+  const querySnapshot = await getDocs(q);
+  const memories = querySnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data() as Omit<Memory, 'id'>,
+    createdAt: doc.data().createdAt.toDate(),
+  }));
+
+  const lastVisible = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
+
+  return { memories, lastVisible };
+};
+
+// ✅ 8. Obter o número total de memórias
+export const getTotalMemoriesCount = async (): Promise<number> => {
+  const querySnapshot = await getDocs(memoriesCollectionRef);
+  return querySnapshot.size;
 };

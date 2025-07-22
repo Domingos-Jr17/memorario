@@ -2,6 +2,13 @@ export interface Timestamp {
   toDate(): Date;
 }
 
+export interface Comment {
+  userId: string;
+  username: string;
+  text: string;
+  createdAt: Date | Timestamp;
+}
+
 export interface Memory {
   id?: string;
   userId: string;
@@ -17,4 +24,7 @@ export interface Memory {
   }>;
   createdAt: Date | Timestamp;
   isPublic?: boolean;
+  tags?: string[];
+  likes?: string[]; // Array of user UIDs who liked the memory
+  comments?: Comment[];
 }

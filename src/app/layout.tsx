@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { Toaster } from 'sonner'; // Import Toaster
+import AdminLink from '@/components/AdminLink'; // Import the new AdminLink component
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -64,7 +65,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ErrorBoundary>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            {children}
+            <AdminLink /> {/* Render AdminLink here */}
+          </AuthProvider>
         </ErrorBoundary>
         <Toaster position="top-right" richColors /> {/* Add Toaster component */}
       </body>

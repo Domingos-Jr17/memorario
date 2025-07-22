@@ -5,59 +5,51 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, Info } from 'lucide-react';
-import dynamic from 'next/dynamic';
+import { LogOut, Info, Trash2 } from 'lucide-react';
+
 
 import { useAuth } from '@/context/useAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
-// import MemoryForm from '@/components/MemoryForm';
-import MemoryCard from '@/components/MemoryCard';
-import { getMemories, deleteMemory } from '@/lib/memoryService';
+import { getAllMemoriesForAdmin, deleteMemory, getTotalMemoriesCount } from '@/lib/memoryService';
 import { Memory } from '@/types/memory';
 
-const DynamicMemoryForm = dynamic(() => import('@/components/MemoryForm'), {
-  ssr: false,
-  loading: () => <p>Loading form...</p>,
-});
-
-export default function MemoriesPage() {
+export default function AdminPage() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
 
   const [memories, setMemories] = useState<Memory[]>([]);
-  const [editingMemory, setEditingMemory] = useState<Memory | null>(null);
-  
   const [isLoadingMemories, setIsLoadingMemories] = useState(true);
   const [lastVisible, setLastVisible] = useState<any>(null);
   const [hasMore, setHasMore] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [memoryToDelete, setMemoryToDelete] = useState<Memory | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [tagSearchQuery, setTagSearchQuery] = useState('');
+  const [totalMemoriesCount, setTotalMemoriesCount] = useState<number | null>(null);
 
   const PAGE_SIZE = 10;
 
-  const fetchMemories = useCallback(async (loadMore: boolean = false) => {
+  const fetchAllMemories = useCallback(async (loadMore: boolean = false) => {
     setIsLoadingMemories(true);
     try {
-      const { memories: newMemories, lastVisible: newLastVisible } = await getMemories(PAGE_SIZE, loadMore ? lastVisible : null, searchQuery, tagSearchQuery);
+      const { memories: newMemories, lastVisible: newLastVisible } = await getAllMemoriesForAdmin(PAGE_SIZE, loadMore ? lastVisible : null);
       setMemories((prevMemories) => loadMore ? [...prevMemories, ...newMemories] : newMemories);
       setLastVisible(newLastVisible);
       setHasMore(newMemories.length === PAGE_SIZE);
     } catch (err: any) {
-      toast.error(`Failed to load memories: ${err.message}`);
+      toast.error(`Failed to load all memories: ${err.message}`);
     } finally {
       setIsLoadingMemories(false);
     }
-  }, [lastVisible, searchQuery, tagSearchQuery]);
+  }, [lastVisible]);
 
   useEffect(() => {
-    if (user) {
-      fetchMemories(false); // Fetch initial memories
-    } else {
+    if (user && isAdmin) {
+      fetchAllMemories(false);
+      getTotalMemoriesCount().then(setTotalMemoriesCount).catch(err => toast.error(`Failed to get total memories count: ${err.message}`));
+    } else if (!user) {
       setIsLoadingMemories(false);
+      router.push('/login'); // Redirect if not logged in
     }
-  }, [fetchMemories, user]);
+  }, [user, isAdmin, fetchAllMemories, router]);
 
   const handleLogout = async () => {
     try {
@@ -68,9 +60,6 @@ export default function MemoriesPage() {
       toast.error(`Logout failed: ${err.message}`);
     }
   };
-
-  const handleEdit = (memory: Memory) => setEditingMemory(memory);
-  const handleCancelEdit = () => setEditingMemory(null);
 
   const handleDelete = (memory: Memory) => {
     setMemoryToDelete(memory);
@@ -88,20 +77,15 @@ export default function MemoriesPage() {
       setMemories([]); // Clear existing memories
       setLastVisible(null); // Reset lastVisible document
       setHasMore(true); // Assume there are more memories to load
-      fetchMemories(false); // Fetch memories from the beginning
+      fetchAllMemories(false); // Fetch memories from the beginning
     } catch (err: any) {
       toast.error(`Failed to delete memory: ${err.message}`);
     }
   };
 
-  const handleMemoryFormSuccess = () => {
-    setEditingMemory(null);
-    setMemories([]); // Clear existing memories
-    setLastVisible(null); // Reset lastVisible document
-    setHasMore(true); // Assume there are more memories to load
-    setSearchQuery(''); // Reset search query
-    fetchMemories(false); // Fetch memories from the beginning
-  };
+  if (!user || !user.emailVerified || !isAdmin) {
+    return <p>Access Denied. You are not authorized to view this page.</p>;
+  }
 
   return (
     <ProtectedRoute>
@@ -109,31 +93,7 @@ export default function MemoriesPage() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-            <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Your Memories</h1>
-            <div className="relative w-full sm:w-auto">
-              <input
-                type="text"
-                placeholder="Search memories..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:w-64 px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <div className="relative w-full sm:w-auto">
-              <input
-                type="text"
-                placeholder="Search by tags..."
-                value={tagSearchQuery}
-                onChange={(e) => setTagSearchQuery(e.target.value)}
-                className="w-full sm:w-64 px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-9H2m20 9l-4-9H10m13 0L10 0" />
-              </svg>
-            </div>
+            <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Admin Dashboard</h1>
             <motion.button
               onClick={handleLogout}
               className="flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-md transition duration-200 ease-in-out"
@@ -147,22 +107,15 @@ export default function MemoriesPage() {
             </motion.button>
           </div>
 
-          {/* Error message */}
-          {/* {error && (
-            <p className="text-red-500 text-sm text-center mb-4" role="alert">
-              {error}
-            </p>
-          )} */}
+          {/* Statistics Section (Placeholder) */}
+          <div className="bg-white shadow-lg rounded-xl p-6 mb-8 border border-gray-200">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Statistics</h2>
+            <p className="text-gray-700">Total Memories: {totalMemoriesCount !== null ? totalMemoriesCount : 'Loading...'}</p>
+            {/* TODO: Implement actual total memory count and user count from DB */}
+          </div>
 
-          {/* Memory Form */}
-          <DynamicMemoryForm
-            editingMemory={editingMemory}
-            onMemoryAddedOrUpdated={handleMemoryFormSuccess}
-            onCancelEdit={handleCancelEdit}
-            
-          />
-
-          {/* Loader, Empty or List */}
+          {/* All Memories List */}
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">All Memories</h2>
           {isLoadingMemories && memories.length === 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
               {[...Array(PAGE_SIZE)].map((_, index) => (
@@ -177,20 +130,29 @@ export default function MemoriesPage() {
           ) : memories.length === 0 ? (
             <div className="text-center py-12 px-4 bg-white rounded-lg shadow-md border border-gray-200">
               <Info className="w-12 h-12 text-gray-400 mx-auto mb-4" aria-hidden="true" />
-              <p className="text-xl font-semibold text-gray-700 mb-2">No memories yet.</p>
-              <p className="text-gray-500">Start by adding your first memory using the form above!</p>
+              <p className="text-xl font-semibold text-gray-700 mb-2">No memories found.</p>
             </div>
           ) : (
             <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
               <AnimatePresence>
                 {memories.map((memory) => (
-                  <MemoryCard
-                    key={memory.id}
-                    memory={memory}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onMemoryUpdated={() => fetchMemories(false)}
-                  />
+                  <div key={memory.id} className="relative bg-white shadow-lg rounded-xl p-6 border border-gray-200 flex flex-col h-full">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">{memory.title}</h3>
+                    <p className="text-gray-600 text-sm mb-2">By: {memory.userId}</p> {/* Displaying userId for now */}
+                    <p className="text-gray-700 mb-4 flex-grow text-base leading-relaxed ck-content" dangerouslySetInnerHTML={{ __html: memory.description || '' }} />
+                    <div className="flex justify-end mt-auto pt-4 border-t border-gray-100">
+                      <motion.button
+                        onClick={() => handleDelete(memory)}
+                        className="flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg shadow-sm transition duration-200 ease-in-out"
+                        aria-label={`Delete memory: ${memory.title}`}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        type="button"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" /> Delete
+                      </motion.button>
+                    </div>
+                  </div>
                 ))}
               </AnimatePresence>
             </motion.div>
@@ -199,7 +161,7 @@ export default function MemoriesPage() {
           {hasMore && (
             <div className="flex justify-center mt-8">
               <motion.button
-                onClick={() => fetchMemories(true)}
+                onClick={() => fetchAllMemories(true)}
                 disabled={isLoadingMemories}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
