@@ -56,7 +56,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ fileItem, onRemove, onRetry, 
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8 }}
       transition={{ duration: 0.3 }}
-      className="relative w-40 h-48 border border-input rounded-lg overflow-hidden shadow-sm flex flex-col bg-background"
+      className="relative w-40 h-48 rounded-lg overflow-hidden shadow-md flex flex-col bg-background"
     >
       <div className="relative w-full h-2/3 bg-accent flex items-center justify-center">
         {isImage ? (

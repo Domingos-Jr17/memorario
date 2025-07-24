@@ -62,7 +62,7 @@ export default function LoginPage() {
       transition={{ duration: 0.5 }}
       className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8"
     >
-      <div className="max-w-md w-full space-y-8 p-8 bg-background rounded-xl shadow-lg border border-primary">
+      <div className="max-w-md w-full space-y-8 p-8 bg-background rounded-xl shadow-lg">
         <div>
           <h2 className="mt-6 text-center text-4xl font-extrabold text-gray-900 tracking-tight">
             Sign in to your account

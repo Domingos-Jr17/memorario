@@ -56,3 +56,6 @@ body {
 .bg-error {
   background-color: rgb(var(--color-error));
 }
+.text-error-foreground {
+  color: rgb(var(--color-error-foreground));
+}

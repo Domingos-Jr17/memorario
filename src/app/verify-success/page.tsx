@@ -18,7 +18,7 @@ export default function VerifySuccessPage() {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="max-w-md w-full bg-background p-8 rounded-xl shadow-lg border border-primary text-center"
+        className="max-w-md w-full bg-background p-8 rounded-xl shadow-lg text-center"
       >
         <motion.div
           initial={{ scale: 0 }}

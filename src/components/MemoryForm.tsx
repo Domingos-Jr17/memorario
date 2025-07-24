@@ -150,7 +150,7 @@ const MemoryForm: React.FC<MemoryFormProps> = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-background shadow-lg rounded-xl p-8 mb-8 border border-primary"
+      className="bg-background shadow-lg rounded-xl p-8 mb-8"
     >
       <h2 className="text-3xl font-bold text-text mb-6 text-center">
         {editingMemory ? 'Editar Memória' : 'Adicionar Nova Memória'}
@@ -178,7 +178,7 @@ const MemoryForm: React.FC<MemoryFormProps> = ({
 
         <div>
           <label htmlFor="tags" className="block text-sm font-semibold text-text mb-1">Tags</label>
-          <div className="flex flex-wrap items-center gap-2 p-2 border border-primary rounded-lg bg-background">
+          <div className="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-background">
             {tags.map(tag => (
               <div key={tag} className="flex items-center gap-1 bg-primary text-primary-foreground text-sm font-medium px-2.5 py-0.5 rounded-full">
                 {tag}
@@ -280,7 +280,7 @@ const MemoryForm: React.FC<MemoryFormProps> = ({
             checked={isPublic}
             onChange={e => setIsPublic(e.target.checked)}
             disabled={isSubmitting || imageInput.fileUploads.some(f => f.status === 'uploading') || videoInput.fileUploads.some(f => f.status === 'uploading')}
-            className="h-4 w-4 text-primary-DEFAULT focus:ring-primary border-primary rounded"
+            className="h-4 w-4 text-text focus:ring-primary border-primary rounded"
           />
           <label htmlFor="isPublic" className="ml-2 block text-sm text-text">
             Compartilhar essa memória publicamente

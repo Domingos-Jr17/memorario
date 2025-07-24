@@ -43,7 +43,7 @@ class ErrorBoundary extends Component<Props, State> {
           transition={{ duration: 0.5 }}
           className="min-h-screen flex flex-col items-center justify-center bg-error/10 px-4 py-12"
         >
-          <div className="max-w-md w-full bg-background p-8 rounded-xl shadow-lg border border-error/20 text-center">
+          <div className="max-w-md w-full bg-background p-8 rounded-xl shadow-lg text-center">
             <TriangleAlert className="h-16 w-16 text-error mx-auto mb-6" />
             <h2 className="text-3xl font-extrabold text-error/90 mb-4">Oops! Something went wrong.</h2>
             <p className="text-text mb-6">

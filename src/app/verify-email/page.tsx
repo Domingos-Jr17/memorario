@@ -79,7 +79,7 @@ export default function VerifyEmailPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="max-w-md w-full bg-background p-8 rounded-xl shadow-lg border border-primary text-center">
+      <div className="max-w-md w-full bg-background p-8 rounded-xl shadow-lg text-center">
         <h1 className="text-2xl font-bold mb-4">Verifique seu Email</h1>
         <p className="text-gray-700 mb-4">
           Enviamos um email de verificação para <strong>{user?.email}</strong>.

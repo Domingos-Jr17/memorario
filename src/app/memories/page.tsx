@@ -168,7 +168,7 @@ export default function MemoriesPage() {
           {isLoadingMemories && memories.length === 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
               {[...Array(PAGE_SIZE)].map((_, index) => (
-                <div key={index} className="bg-background rounded-xl shadow-lg p-6 animate-pulse border border-primary">
+                <div key={index} className="bg-background rounded-xl shadow-lg p-6 animate-pulse">
                   <div className="h-6 bg-primary/90 rounded w-3/4 mb-4"></div>
                   <div className="h-4 bg-primary/90 rounded w-full mb-2"></div>
                   <div className="h-4 bg-primary/90 rounded w-5/6 mb-6"></div>

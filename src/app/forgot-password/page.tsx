@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
       transition={{ duration: 0.5 }}
       className="min-h-screen flex items-center justify-center bg-background px-4"
     >
-      <div className="w-full max-w-md space-y-8 p-8 bg-background rounded-xl shadow-lg border border-primary">
+      <div className="w-full max-w-md space-y-8 p-8 bg-background rounded-xl shadow-lg">
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-gray-900">Reset your password</h2>
           <p className="mt-2 text-sm text-gray-600">

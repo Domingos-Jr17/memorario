@@ -108,7 +108,7 @@ export default function AdminPage() {
           </div>
 
           {/* Statistics Section (Placeholder) */}
-          <div className="bg-background shadow-lg rounded-xl p-6 mb-8 border border-primary">
+          <div className="bg-background shadow-lg rounded-xl p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Statistics</h2>
             <p className="text-gray-700">Total Memories: {totalMemoriesCount !== null ? totalMemoriesCount : 'Loading...'}</p>
             {/* TODO: Implement actual total memory count and user count from DB */}
@@ -119,7 +119,7 @@ export default function AdminPage() {
           {isLoadingMemories && memories.length === 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
               {[...Array(PAGE_SIZE)].map((_, index) => (
-                <div key={index} className="bg-background rounded-xl shadow-lg p-6 animate-pulse border border-primary">
+                <div key={index} className="bg-background rounded-xl shadow-lg p-6 animate-pulse">
                   <div className="h-6 bg-primary/90 rounded w-3/4 mb-4"></div>
                   <div className="h-4 bg-primary/90 rounded w-full mb-2"></div>
                   <div className="h-4 bg-primary/90 rounded w-5/6 mb-6"></div>
@@ -128,7 +128,7 @@ export default function AdminPage() {
               ))}
             </div>
           ) : memories.length === 0 ? (
-            <div className="text-center py-12 px-4 bg-background rounded-lg shadow-md border border-primary">
+            <div className="text-center py-12 px-4 bg-background rounded-lg shadow-md">
               <Info className="w-12 h-12 text-gray-400 mx-auto mb-4" aria-hidden="true" />
               <p className="text-xl font-semibold text-gray-700 mb-2">No memories found.</p>
             </div>
@@ -136,7 +136,7 @@ export default function AdminPage() {
             <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
               <AnimatePresence>
                 {memories.map((memory) => (
-                  <div key={memory.id} className="relative bg-background shadow-lg rounded-xl p-6 border border-primary flex flex-col h-full">
+                  <div key={memory.id} className="relative bg-background shadow-lg rounded-xl p-6 flex flex-col h-full">
                     <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">{memory.title}</h3>
                     <p className="text-gray-600 text-sm mb-2">By: {memory.userId}</p> {/* Displaying userId for now */}
                     <p className="text-gray-700 mb-4 flex-grow text-base leading-relaxed ck-content" dangerouslySetInnerHTML={{ __html: memory.description || '' }} />

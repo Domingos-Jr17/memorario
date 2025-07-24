@@ -90,7 +90,7 @@ export default function SignupPage() {
       transition={{ duration: 0.5 }}
       className="min-h-screen flex items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8"
     >
-      <div className="w-full max-w-md space-y-8 p-8 bg-background rounded-xl shadow-lg border border-primary">
+      <div className="w-full max-w-md space-y-8 p-8 bg-background rounded-xl shadow-lg">
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-gray-900">Create your account</h2>
         </div>

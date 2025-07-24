@@ -94,7 +94,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onEdit, onDelete, onMem
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
       whileHover={{ y: -5, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' }}
-      className="bg-background text-text shadow-lg rounded-xl p-6 border border-primary flex flex-col h-full focus:outline-none focus:ring-2 focus:ring-primary"
+      className="bg-background text-text shadow-lg rounded-xl p-6 flex flex-col h-full focus:outline-none focus:ring-2 focus:ring-primary"
       aria-label={`Memory: ${memory.title}`}
       tabIndex={0}
       role="article"
@@ -192,7 +192,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onEdit, onDelete, onMem
 
       {/* Comments Display */}
       {memory.comments && memory.comments.length > 0 && (
-        <div className="border-t border-background/90 pt-4 mt-4">
+        <div className="pt-4 mt-4">
           <h4 className="text-lg font-semibold text-text mb-3">Comments</h4>
           <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
             {memory.comments.map((comment, index) => (
@@ -226,7 +226,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onEdit, onDelete, onMem
       </div>
 
       <motion.div 
-        className="flex justify-end space-x-3 mt-auto pt-4 border-t border-gray-100"
+        className="flex justify-end space-x-3 mt-auto pt-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}

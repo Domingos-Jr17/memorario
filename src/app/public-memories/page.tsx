@@ -50,7 +50,7 @@ export default function PublicMemoriesPage() {
         {isLoadingMemories && memories.length === 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
             {[...Array(PAGE_SIZE)].map((_, index) => (
-              <div key={index} className="bg-background rounded-xl shadow-lg p-6 animate-pulse border border-primary">
+              <div key={index} className="bg-background rounded-xl shadow-lg p-6 animate-pulse">
                 <div className="h-6 bg-primary/90 rounded w-3/4 mb-4"></div>
                 <div className="h-4 bg-primary/90 rounded w-full mb-2"></div>
                 <div className="h-4 bg-primary/90 rounded w-5/6 mb-6"></div>
@@ -59,7 +59,7 @@ export default function PublicMemoriesPage() {
             ))}
           </div>
         ) : memories.length === 0 ? (
-          <div className="text-center py-12 px-4 bg-background rounded-lg shadow-md border border-primary">
+          <div className="text-center py-12 px-4 bg-background rounded-lg shadow-md">
             <Info className="w-12 h-12 text-gray-400 mx-auto mb-4" aria-hidden="true" />
             <p className="text-xl font-semibold text-gray-700 mb-2">No public memories available yet.</p>
             <p className="text-gray-500">Check back later or share your own!</p>
