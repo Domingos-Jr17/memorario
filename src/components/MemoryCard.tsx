@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Memory, Timestamp } from '@/types/memory';
+import { Memory, Timestamp, MemoryComment } from '@/types/memory';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Edit, Trash2, CalendarDays, Heart, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/context/useAuth';
 import { toggleLike, addComment } from '@/lib/memoryService';
 import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
 
 interface MemoryCardProps {
   memory: Memory;
@@ -40,7 +41,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onEdit, onDelete, onMem
     if (!newCommentText.trim()) return;
 
     try {
-      const comment = {
+      const comment: MemoryComment = {
         userId: user.uid,
         username: user.displayName || user.email || 'Anonymous',
         text: newCommentText,
@@ -92,7 +93,8 @@ const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onEdit, onDelete, onMem
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="bg-white shadow-lg rounded-xl p-6 border border-gray-200 flex flex-col h-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      whileHover={{ y: -5, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' }}
+      className="bg-background text-text shadow-lg rounded-xl p-6 border border-primary flex flex-col h-full focus:outline-none focus:ring-2 focus:ring-primary"
       aria-label={`Memory: ${memory.title}`}
       tabIndex={0}
       role="article"
@@ -109,7 +111,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onEdit, onDelete, onMem
       {memory.tags && memory.tags.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
           {memory.tags.map((tag, index) => (
-            <span key={index} className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-indigo-900 dark:text-indigo-300">
+            <span key={index} className="bg-secondary text-secondary-foreground text-xs font-medium px-2.5 py-0.5 rounded-full">
               {tag}
             </span>
           ))}
@@ -117,7 +119,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onEdit, onDelete, onMem
       )}
 
       {mediaItems.length > 0 && (
-        <div className="relative w-full h-56 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center mb-4">
+        <div className="relative w-full h-56 rounded-lg overflow-hidden bg-accent flex items-center justify-center mb-4">
           {mediaItems[currentIndex].type === 'image' ? (
             <Image
               src={mediaItems[currentIndex].url}
@@ -140,27 +142,31 @@ const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onEdit, onDelete, onMem
           <button
             onClick={goPrev}
             aria-label="Previous media"
-            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 text-white p-1 rounded-full hover:bg-opacity-60 transition"
+            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-background/40 text-text p-1 rounded-full hover:bg-background/60 transition"
           >
             ‹
           </button>
-          <button
+          <motion.button
             onClick={goNext}
             aria-label="Next media"
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 text-white p-1 rounded-full hover:bg-opacity-60 transition"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-background/40 text-text p-1 rounded-full hover:bg-background/60 transition"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
           >
             ›
-          </button>
+          </motion.button>
 
           {/* Indicadores de posição */}
           <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-2">
             {mediaItems.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentIndex(i)}
-                aria-label={`Go to media ${i + 1}`}
-                className={`w-3 h-3 rounded-full transition-colors ${i === currentIndex ? 'bg-indigo-600' : 'bg-gray-400'}`}
-              />
+              <motion.button
+            key={i}
+            onClick={() => setCurrentIndex(i)}
+            aria-label={`Go to media ${i + 1}`}
+            className={`w-3 h-3 rounded-full transition-colors ${i === currentIndex ? 'bg-primary' : 'bg-muted-foreground'}`}
+            whileHover={{ scale: 1.2 }}
+            whileTap={{ scale: 0.8 }}
+          />
             ))}
           </div>
         </div>
@@ -168,15 +174,17 @@ const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onEdit, onDelete, onMem
 
       {/* Likes and Comments Section */}
       <div className="flex items-center gap-4 mb-4">
-        <button
+        <motion.button
           onClick={handleLikeToggle}
-          className={`flex items-center gap-1 text-sm font-medium ${hasLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}
+          className={`flex items-center gap-1 text-sm font-medium ${hasLiked ? 'text-error' : 'text-text hover:text-error'}`}
           aria-label={hasLiked ? 'Unlike memory' : 'Like memory'}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
         >
           <Heart className="w-5 h-5 fill-current" />
           <span>{memory.likes?.length || 0} Likes</span>
-        </button>
-        <div className="flex items-center gap-1 text-sm font-medium text-gray-500">
+        </motion.button>
+        <div className="flex items-center gap-1 text-sm font-medium text-text">
           <MessageCircle className="w-5 h-5" />
           <span>{memory.comments?.length || 0} Comments</span>
         </div>
@@ -184,13 +192,13 @@ const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onEdit, onDelete, onMem
 
       {/* Comments Display */}
       {memory.comments && memory.comments.length > 0 && (
-        <div className="border-t border-gray-100 pt-4 mt-4">
-          <h4 className="text-lg font-semibold text-gray-800 mb-3">Comments</h4>
+        <div className="border-t border-background/90 pt-4 mt-4">
+          <h4 className="text-lg font-semibold text-text mb-3">Comments</h4>
           <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
             {memory.comments.map((comment, index) => (
-              <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-sm font-semibold text-gray-800">{comment.username} <span className="text-gray-500 text-xs font-normal">({(comment.createdAt instanceof Date ? comment.createdAt : (comment.createdAt as Timestamp).toDate()).toLocaleDateString()})</span></p>
-                <p className="text-gray-700 text-sm mt-1">{comment.text}</p>
+              <div key={index} className="bg-background/90 p-3 rounded-lg">
+                <p className="text-sm font-semibold text-text">{comment.username} <span className="text-text/70 text-xs font-normal">({(comment.createdAt instanceof Date ? comment.createdAt : (comment.createdAt as Timestamp).toDate()).toLocaleDateString()})</span></p>
+                <p className="text-text text-sm mt-1">{comment.text}</p>
               </div>
             ))}
           </div>
@@ -199,27 +207,34 @@ const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onEdit, onDelete, onMem
 
       {/* Add Comment Input */}
       <div className="mt-4">
-        <textarea
-          className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        <Textarea
+          className="w-full p-2 border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background text-text"
           rows={2}
           placeholder="Add a comment..."
           value={newCommentText}
           onChange={(e) => setNewCommentText(e.target.value)}
-        ></textarea>
-        <button
+        />
+        <motion.button
           onClick={handleAddComment}
-          className="mt-2 px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 text-sm"
+          className="mt-2 px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 text-sm"
           disabled={!newCommentText.trim()}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           Post Comment
-        </button>
+        </motion.button>
       </div>
 
-      <div className="flex justify-end space-x-3 mt-auto pt-4 border-t border-gray-100">
+      <motion.div 
+        className="flex justify-end space-x-3 mt-auto pt-4 border-t border-gray-100"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
         <motion.button
           onClick={() => onEdit && onEdit(memory)}
           disabled={!onEdit}
-          className="flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg shadow-sm transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center px-4 py-2 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg shadow-sm transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label={`Edit memory: ${memory.title}`}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -231,7 +246,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onEdit, onDelete, onMem
         <motion.button
           onClick={() => onDelete && onDelete(memory)}
           disabled={!onDelete}
-          className="flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg shadow-sm transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center px-4 py-2 bg-error hover:bg-error/90 text-error-foreground font-medium rounded-lg shadow-sm transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label={`Delete memory: ${memory.title}`}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -239,7 +254,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onEdit, onDelete, onMem
         >
           <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" /> Delete
         </motion.button>
-      </div>
+      </motion.div>
     </motion.article>
   );
 };

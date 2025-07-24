@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { UploadProgressProvider } from "@/context/UploadProgressContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { Toaster } from 'sonner'; // Import Toaster
 import AdminLink from '@/components/AdminLink'; // Import the new AdminLink component
+import GlobalProgressBar from '@/components/GlobalProgressBar'; // Import GlobalProgressBar
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { ModeToggle } from "@/components/ModeToggle";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -62,15 +66,28 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-text`}
       >
-        <ErrorBoundary>
-          <AuthProvider>
-            {children}
-            <AdminLink /> {/* Render AdminLink here */}
-          </AuthProvider>
-        </ErrorBoundary>
-        <Toaster position="top-right" richColors /> {/* Add Toaster component */}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ErrorBoundary>
+            <UploadProgressProvider>
+              <AuthProvider>
+                <GlobalProgressBar /> {/* Render GlobalProgressBar here */}
+                <div className="absolute top-4 right-4">
+                  <ModeToggle />
+                </div>
+                {children}
+                <AdminLink /> {/* Render AdminLink here */}
+              </AuthProvider>
+            </UploadProgressProvider>
+          </ErrorBoundary>
+          <Toaster position="top-right" richColors /> {/* Add Toaster component */}
+        </ThemeProvider>
       </body>
     </html>
   );

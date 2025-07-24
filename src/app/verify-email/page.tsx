@@ -78,8 +78,8 @@ export default function VerifyEmailPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border border-gray-200 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="max-w-md w-full bg-background p-8 rounded-xl shadow-lg border border-primary text-center">
         <h1 className="text-2xl font-bold mb-4">Verifique seu Email</h1>
         <p className="text-gray-700 mb-4">
           Enviamos um email de verificação para <strong>{user?.email}</strong>.
@@ -93,8 +93,8 @@ export default function VerifyEmailPage() {
           disabled={isSending || cooldown > 0}
           className={`w-full mb-4 text-white py-2 rounded transition ${
             isSending || cooldown > 0
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-indigo-600 hover:bg-indigo-700"
+              ? "bg-primary/70 cursor-not-allowed"
+              : "bg-primary hover:bg-primary/90"
           }`}
         >
           {isSending
@@ -107,14 +107,14 @@ export default function VerifyEmailPage() {
         <button
           onClick={handleRefreshVerification}
           disabled={isRefreshing}
-          className="w-full mb-4 bg-green-600 text-white py-2 rounded hover:bg-green-700 transition"
+          className="w-full mb-4 bg-success text-success-foreground py-2 rounded hover:bg-success/90 transition"
         >
           {isRefreshing ? "Verificando..." : "Já verifiquei, tentar novamente"}
         </button>
 
         <button
           onClick={handleLogout}
-          className="w-full border border-gray-300 text-gray-700 py-2 rounded hover:bg-gray-100 transition"
+          className="w-full border border-input text-text py-2 rounded hover:bg-accent transition"
         >
           Sair da Conta
         </button>

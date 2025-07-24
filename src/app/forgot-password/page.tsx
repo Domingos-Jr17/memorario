@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/context/useAuth';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { Input } from '@/components/ui/input';
 import { Mail, Send, LogIn } from 'lucide-react';
 
 export default function ForgotPasswordPage() {
@@ -41,9 +42,9 @@ export default function ForgotPasswordPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="min-h-screen flex items-center justify-center bg-gray-50 px-4"
+      className="min-h-screen flex items-center justify-center bg-background px-4"
     >
-      <div className="w-full max-w-md space-y-8 p-8 bg-white rounded-xl shadow-lg border border-gray-200">
+      <div className="w-full max-w-md space-y-8 p-8 bg-background rounded-xl shadow-lg border border-primary">
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-gray-900">Reset your password</h2>
           <p className="mt-2 text-sm text-gray-600">
@@ -56,14 +57,14 @@ export default function ForgotPasswordPage() {
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Mail className="h-5 w-5 text-gray-400" />
             </div>
-            <input
+            <Input
               id="email"
               type="email"
               placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="pl-10"
             />
           </div>
 
@@ -76,8 +77,8 @@ export default function ForgotPasswordPage() {
             whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
             className={`w-full flex justify-center items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none transition duration-200 ${
               isSubmitting
-                ? 'bg-indigo-400 cursor-not-allowed'
-                : 'bg-indigo-600 hover:bg-indigo-700'
+                ? 'bg-primary/70 cursor-not-allowed'
+                : 'bg-primary hover:bg-primary/90'
             }`}
           >
             {isSubmitting ? 'Sending...' : <><Send className="h-5 w-5" /> Send Reset Link</>}

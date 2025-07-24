@@ -33,7 +33,7 @@ export default function Editor({ initialContent = '', onContentChange }: EditorP
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: 'focus:outline-none px-4 py-2 min-h-[200px] bg-white text-black placeholder:text-gray-400',
+        class: 'focus:outline-none px-4 py-2 min-h-[200px] bg-background text-text placeholder:text-muted-foreground',
       },
     },
     onUpdate: ({ editor }) => {
@@ -62,7 +62,7 @@ export default function Editor({ initialContent = '', onContentChange }: EditorP
   if (!isClient || !editor) return <p className="text-sm text-muted-foreground">Carregando editor...</p>;
 
   return (
-    <div className="relative w-full border rounded-2xl shadow-md bg-white dark:bg-gray-950 p-4">
+    <div className="relative w-full border rounded-2xl shadow-md bg-background p-4">
       <div className="flex gap-1 bg-muted p-1 rounded-md shadow-sm mb-2">
         <Button size="icon" variant="ghost" onClick={() => toggle('toggleBold')} aria-label="Negrito">
           <Bold className="w-4 h-4" />

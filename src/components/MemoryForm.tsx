@@ -1,53 +1,22 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Editor from './Editor';
 import { addMemory, updateMemory } from '@/lib/memoryService';
 import { Memory } from '@/types/memory';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
-import { Image as ImageIcon, Video as VideoIcon, Trash2 } from 'lucide-react';
-
-// Hook para upload múltiplo de arquivos 
-import { useCallback } from 'react';
-
-function useMultiFileInput(initialMedia?: { url: string; publicId: string }[]) {
-  const [files, setFiles] = useState<File[]>([]);
-  const [media, setMedia] = useState<{ url: string; publicId: string }[]>(initialMedia || []);
-
-  const addFiles = useCallback((newFiles: FileList | null) => {
-    if (!newFiles) return;
-    const filesArray = Array.from(newFiles);
-    setFiles(prev => [...prev, ...filesArray]);
-  }, []);
-
-  const removeFileByIndex = useCallback((index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
-  }, []);
-
-  const removeMediaByIndex = useCallback((index: number) => {
-    setMedia(prev => prev.filter((_, i) => i !== index));
-  }, []);
-
-  const reset = useCallback((newMedia?: { url: string; publicId: string }[]) => {
-    setFiles([]);
-    setMedia(newMedia || []);
-  }, []);
-
-  return {
-    files,
-    media,
-    addFiles,
-    removeFileByIndex,
-    removeMediaByIndex,
-    reset,
-  };
-}
+import { motion, AnimatePresence } from 'framer-motion';
+import { Image as ImageIcon, Video as VideoIcon, X } from 'lucide-react';
+import { useFileUpload } from '@/hooks/useFileUpload';
+import { useTagInput } from '@/hooks/useTagInput';
+import FilePreview from './FilePreview';
+import { ALLOWED_IMAGE_TYPES, ALLOWED_VIDEO_TYPES } from '@/lib/file-validation';
+import { Input } from '@/components/ui/input';
+import { useUploadProgress } from '@/context/UploadProgressContext';
 
 interface MemoryFormProps {
   editingMemory: Memory | null;
   onMemoryAddedOrUpdated: () => void;
   onCancelEdit: () => void;
-  isAdmin?: boolean; // indicar se o usuário é admin para limitação de uploads
+  isAdmin?: boolean;
 }
 
 const MAX_UPLOADS_FOR_UTENTE = 15;
@@ -61,103 +30,116 @@ const MemoryForm: React.FC<MemoryFormProps> = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(false);
-  const [tags, setTags] = useState<string[]>([]);
-  const imageInput = useMultiFileInput(editingMemory?.images);
-  const videoInput = useMultiFileInput(editingMemory?.videos);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
-  // Atualiza estados se estiver editando memória
+  const { tags, inputValue, handleInputChange, handleInputKeyDown, removeTag, resetTags, suggestions, addTagFromSuggestion } = useTagInput(editingMemory?.tags);
+  const imageInput = useFileUpload(editingMemory?.images);
+  const videoInput = useFileUpload(editingMemory?.videos);
+  const { setUploadingState, setUploadProgress } = useUploadProgress();
+
   useEffect(() => {
     if (editingMemory) {
       setTitle(editingMemory.title);
       setDescription(editingMemory.description || '');
       setIsPublic(editingMemory.isPublic || false);
-      setTags(editingMemory.tags || []);
+      resetTags(editingMemory.tags || []);
       imageInput.reset(editingMemory.images);
       videoInput.reset(editingMemory.videos);
     } else {
       setTitle('');
       setDescription('');
       setIsPublic(false);
-      setTags([]);
+      resetTags();
       imageInput.reset();
       videoInput.reset();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingMemory]);
 
-  // Verifica limite de arquivos permitidos para utentes (não admin)
   const canAddMoreFiles = (type: 'image' | 'video', newFilesCount: number) => {
-    if (isAdmin) return true; // admin ilimitado
-
-    // total arquivos atuais
-    const currentImagesCount = imageInput.files.length + imageInput.media.length;
-    const currentVideosCount = videoInput.files.length + videoInput.media.length;
-
-    if (type === 'image') {
-      return (currentImagesCount + newFilesCount) <= MAX_UPLOADS_FOR_UTENTE;
-    }
-    if (type === 'video') {
-      return (currentVideosCount + newFilesCount) <= MAX_UPLOADS_FOR_UTENTE;
-    }
-    return false;
+    if (isAdmin) return true;
+    const currentCount = type === 'image'
+      ? imageInput.existingMedia.length + imageInput.fileUploads.length
+      : videoInput.existingMedia.length + videoInput.fileUploads.length;
+    return (currentCount + newFilesCount) <= MAX_UPLOADS_FOR_UTENTE;
   };
 
-  // Handler para adicionar imagens
-  const handleAddImages = (files: FileList | null) => {
+  const handleFileChange = (type: 'image' | 'video', files: FileList | null) => {
     if (!files) return;
-    if (!canAddMoreFiles('image', files.length)) {
-      toast.error(`Você pode adicionar até ${MAX_UPLOADS_FOR_UTENTE} imagens no total.`);
+
+    if (!canAddMoreFiles(type, files.length)) {
+      toast.error(`Você pode adicionar até ${MAX_UPLOADS_FOR_UTENTE} ${type === 'image' ? 'imagens' : 'vídeos'}.`);
       return;
     }
-    imageInput.addFiles(files);
+
+    const allowedTypes = type === 'image' ? ALLOWED_IMAGE_TYPES : ALLOWED_VIDEO_TYPES;
+    const input = type === 'image' ? imageInput : videoInput;
+    input.addFiles(files, allowedTypes);
   };
 
-  // Handler para adicionar vídeos
-  const handleAddVideos = (files: FileList | null) => {
-    if (!files) return;
-    if (!canAddMoreFiles('video', files.length)) {
-      toast.error(`Você pode adicionar até ${MAX_UPLOADS_FOR_UTENTE} vídeos no total.`);
-      return;
+  const validateForm = useCallback(() => {
+    const errors: { [key: string]: string } = {};
+    if (!title.trim()) {
+      errors.title = 'O título é obrigatório.';
     }
-    videoInput.addFiles(files);
-  };
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [title]);
 
   const handleAddOrUpdateMemory = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     setIsSubmitting(true);
 
-    try {
-      if (!title.trim()) {
-        toast.error('O título é obrigatório.');
-        setIsSubmitting(false);
-        return;
-      }
+    const onOverallProgress = (progress: number) => {
+      setUploadProgress(progress);
+    };
 
+    const onUploadStartEnd = (isUploading: boolean) => {
+      setUploadingState(isUploading);
+    };
+
+    try {
       if (editingMemory) {
         await updateMemory(
           editingMemory.id!,
           title,
           description,
           isPublic,
-          imageInput.files,
-          videoInput.files,
-          imageInput.media,
-          videoInput.media,
-          tags
+          imageInput.filesToUpload.map(item => item.file),
+          videoInput.filesToUpload.map(item => item.file),
+          imageInput.existingMedia,
+          videoInput.existingMedia,
+          tags,
+          onOverallProgress,
+          onUploadStartEnd
         );
         toast.success('Memória atualizada com sucesso!');
       } else {
-        await addMemory(title, description, isPublic, imageInput.files, videoInput.files, tags);
+        await addMemory(
+          title,
+          description,
+          isPublic,
+          imageInput.filesToUpload.map(item => item.file),
+          videoInput.filesToUpload.map(item => item.file),
+          tags,
+          onOverallProgress,
+          onUploadStartEnd
+        );
         toast.success('Memória adicionada com sucesso!');
       }
 
       onMemoryAddedOrUpdated();
       setTitle('');
       setDescription('');
+      setIsPublic(false);
+      resetTags();
       imageInput.reset();
       videoInput.reset();
-    } catch (err: any) {
-      toast.error(`Erro: ${err.message || 'Ocorreu um erro inesperado.'}`);
+    } catch (err: unknown) {
+      toast.error(`Erro: ${(err as Error).message || 'Ocorreu um erro inesperado.'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -168,143 +150,170 @@ const MemoryForm: React.FC<MemoryFormProps> = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-white shadow-lg rounded-xl p-8 mb-8 border border-gray-200"
+      className="bg-background shadow-lg rounded-xl p-8 mb-8 border border-primary"
     >
-      <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">
+      <h2 className="text-3xl font-bold text-text mb-6 text-center">
         {editingMemory ? 'Editar Memória' : 'Adicionar Nova Memória'}
       </h2>
       <form onSubmit={handleAddOrUpdateMemory} className="space-y-6" noValidate>
         <div>
-          <label htmlFor="title" className="block text-sm font-semibold text-gray-700 mb-1">Título</label>
-          <input
+          <label htmlFor="title" className="block text-sm font-semibold text-text mb-1">Título</label>
+          <Input
             type="text"
             id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="mt-1 block w-full border border-gray-300 rounded-lg py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-base text-gray-900"
+            className={`${formErrors.title ? 'border-error' : 'border-primary'}`}
+            aria-invalid={!!formErrors.title}
+            aria-describedby="title-error"
           />
+          {formErrors.title && <p id="title-error" className="text-sm text-error mt-1" aria-live="polite">{formErrors.title}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Descrição</label>
+          <label htmlFor='description' className="block text-sm font-semibold text-text mb-1">Descrição</label>
           <Editor initialContent={description} onContentChange={setDescription} />
         </div>
 
         <div>
-          <label htmlFor="tags" className="block text-sm font-semibold text-gray-700 mb-1">Tags (separadas por vírgula)</label>
-          <input
-            type="text"
-            id="tags"
-            value={tags.join(', ')}
-            onChange={(e) => setTags(e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag !== ''))}
-            disabled={isSubmitting}
-            className="mt-1 block w-full border border-gray-300 rounded-lg py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-base text-gray-900"
-          />
+          <label htmlFor="tags" className="block text-sm font-semibold text-text mb-1">Tags</label>
+          <div className="flex flex-wrap items-center gap-2 p-2 border border-primary rounded-lg bg-background">
+            {tags.map(tag => (
+              <div key={tag} className="flex items-center gap-1 bg-primary text-primary-foreground text-sm font-medium px-2.5 py-0.5 rounded-full">
+                {tag}
+                <button type="button" onClick={() => removeTag(tag)} className="text-white hover:text-primary/90">
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+            <Input
+              type="text"
+              id="tags"
+              value={inputValue}
+              onChange={handleInputChange}
+              onKeyDown={handleInputKeyDown}
+              placeholder={tags.length === 0 ? 'Adicione tags (ex: viagem, família)' : ''}
+              className="flex-1 bg-transparent outline-none text-base text-text min-w-[150px] border-none focus:ring-0"
+            />
+          </div>
+          {suggestions.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {suggestions.map(tag => (
+                <motion.button
+                  key={tag}
+                  type="button"
+                  onClick={() => addTagFromSuggestion(tag)}
+                  className="px-3 py-1 bg-accent text-accent-foreground rounded-full text-sm hover:bg-accent/90 transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {tag}
+                </motion.button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Upload imagens */}
+        {/* Upload de Imagens */}
         <div>
-          <label htmlFor="images" className="block text-sm font-semibold text-gray-700 mb-1 flex items-center">
-            <ImageIcon className="inline w-5 h-5 mr-2 text-gray-600" /> Imagens (opcional)
+          <label htmlFor="images" className="block text-sm font-semibold text-text mb-1 items-center">
+            <ImageIcon className="inline w-5 h-5 mr-2 text-text/70" /> Imagens (opcional)
           </label>
           <input
             type="file"
             id="images"
             multiple
-            accept="image/*"
-            onChange={e => handleAddImages(e.target.files)}
-            disabled={isSubmitting}
+            accept={ALLOWED_IMAGE_TYPES.join(',')}
+            onChange={e => handleFileChange('image', e.target.files)}
+            disabled={isSubmitting || imageInput.fileUploads.some(f => f.status === 'uploading') || videoInput.fileUploads.some(f => f.status === 'uploading')}
+            className='block w-full text-sm text-text file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90'
           />
-          {/* Listagem arquivos imagens */}
-          {[...imageInput.media, ...imageInput.files.map(f => ({ url: f.name, publicId: '' }))].map((file, index) => (
-            <div key={index} className="flex items-center mt-2 p-2 bg-gray-50 border rounded-md">
-              <span className="text-sm text-gray-600">{file.publicId ? 'Existente' : 'Nova'} Imagem {index + 1}</span>
-              {file.url && file.publicId && (
-                <a href={file.url} target="_blank" rel="noopener noreferrer" className="ml-2 text-indigo-600 hover:underline">Ver</a>
-              )}
-              <button
-                type="button"
-                onClick={() =>
-                  file.publicId
-                    ? imageInput.removeMediaByIndex(index)
-                    : imageInput.removeFileByIndex(index - imageInput.media.length)
-                }
-                className="ml-auto text-red-600 hover:text-red-800 p-1"
-                disabled={isSubmitting}
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+          <div className="mt-4 flex flex-wrap gap-4">
+            <AnimatePresence>
+              {imageInput.fileUploads.map((fileItem) => (
+                <FilePreview
+                  key={fileItem.id}
+                  fileItem={fileItem}
+                  onRemove={() => imageInput.removeFile(fileItem.id)}
+                  onRetry={() => imageInput.retryUpload(fileItem.id)}
+                  isSubmitting={isSubmitting || imageInput.fileUploads.some(f => f.status === 'uploading') || videoInput.fileUploads.some(f => f.status === 'uploading')}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
         </div>
 
-        {/* Upload vídeos */}
+        {/* Upload de Vídeos */}
         <div>
-          <label htmlFor="videos" className="block text-sm font-semibold text-gray-700 mb-1 flex items-center">
-            <VideoIcon className="inline w-5 h-5 mr-2 text-gray-600" /> Vídeos (opcional)
+          <label htmlFor="videos" className="block text-sm font-semibold text-text mb-1 items-center">
+            <VideoIcon className="inline w-5 h-5 mr-2 text-text/70" /> Vídeos (opcional)
           </label>
           <input
             type="file"
             id="videos"
             multiple
-            accept="video/*"
-            onChange={e => handleAddVideos(e.target.files)}
-            disabled={isSubmitting}
+            accept={ALLOWED_VIDEO_TYPES.join(',')}
+            onChange={e => handleFileChange('video', e.target.files)}
+            disabled={isSubmitting || imageInput.fileUploads.some(f => f.status === 'uploading') || videoInput.fileUploads.some(f => f.status === 'uploading')}
+            className='block w-full text-sm text-text file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90'
           />
-          {[...videoInput.media, ...videoInput.files.map(f => ({ url: f.name, publicId: '' }))].map((file, index) => (
-            <div key={index} className="flex items-center mt-2 p-2 bg-gray-200 border rounded-md">
-              <span className="text-sm text-gray-600">{file.publicId ? 'Existente' : 'Novo'} Vídeo {index + 1}</span>
-              {file.url && file.publicId && (
-                <a href={file.url} target="_blank" rel="noopener noreferrer" className="ml-2 text-indigo-600 hover:underline">Ver</a>
-              )}
-              <button
-                type="button"
-                onClick={() =>
-                  file.publicId
-                    ? videoInput.removeMediaByIndex(index)
-                    : videoInput.removeFileByIndex(index - videoInput.media.length)
-                }
-                className="ml-auto text-red-600 hover:text-red-800 p-1"
-                disabled={isSubmitting}
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+          <div className="mt-4 flex flex-wrap gap-4">
+            <AnimatePresence>
+              {videoInput.fileUploads.map((fileItem) => (
+                <FilePreview
+                  key={fileItem.id}
+                  fileItem={fileItem}
+                  onRemove={() => videoInput.removeFile(fileItem.id)}
+                  onRetry={() => videoInput.retryUpload(fileItem.id)}
+                  isSubmitting={isSubmitting || imageInput.fileUploads.some(f => f.status === 'uploading') || videoInput.fileUploads.some(f => f.status === 'uploading')}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
         </div>
 
-        {/* Toggle público */}
         <div className="flex items-center mb-6">
           <input
             type="checkbox"
             id="isPublic"
             checked={isPublic}
             onChange={e => setIsPublic(e.target.checked)}
-            disabled={isSubmitting}
-            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            disabled={isSubmitting || imageInput.fileUploads.some(f => f.status === 'uploading') || videoInput.fileUploads.some(f => f.status === 'uploading')}
+            className="h-4 w-4 text-primary-DEFAULT focus:ring-primary border-primary rounded"
           />
-          <label htmlFor="isPublic" className="ml-2 block text-sm text-gray-900">
+          <label htmlFor="isPublic" className="ml-2 block text-sm text-text">
             Compartilhar essa memória publicamente
           </label>
         </div>
 
-        {/* Botões */}
         <div className="flex gap-4">
           <motion.button
             type="submit"
-            disabled={isSubmitting}
-            className="flex-1 px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700"
+            disabled={isSubmitting || imageInput.fileUploads.some(f => f.status === 'uploading') || videoInput.fileUploads.some(f => f.status === 'uploading')}
+            className="flex-1 px-6 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 disabled:bg-primary/90 transition-colors"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            {isSubmitting ? 'Salvando...' : editingMemory ? 'Atualizar Memória' : 'Adicionar Memória'}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={isSubmitting || imageInput.fileUploads.some(f => f.status === 'uploading') || videoInput.fileUploads.some(f => f.status === 'uploading') ? 'saving' : 'save'}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                {isSubmitting || imageInput.fileUploads.some(f => f.status === 'uploading') || videoInput.fileUploads.some(f => f.status === 'uploading') ? 'Salvando...' : editingMemory ? 'Atualizar Memória' : 'Adicionar Memória'}
+              </motion.span>
+            </AnimatePresence>
           </motion.button>
 
           {editingMemory && (
             <motion.button
               type="button"
               onClick={onCancelEdit}
-              disabled={isSubmitting}
-              className="flex-1 px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+              disabled={isSubmitting || imageInput.fileUploads.some(f => f.status === 'uploading') || videoInput.fileUploads.some(f => f.status === 'uploading')}
+              className="flex-1 px-6 py-3 bg-background border border-primary text-text font-medium rounded-lg hover:bg-background/90 disabled:bg-background/90 transition-colors"
             >
               Cancelar
             </motion.button>
@@ -316,3 +325,4 @@ const MemoryForm: React.FC<MemoryFormProps> = ({
 };
 
 export default MemoryForm;
+

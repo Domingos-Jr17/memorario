@@ -13,11 +13,11 @@ import {
   limit,
   startAfter,
   getDoc,
+  Query,
 } from 'firebase/firestore';
+import axios from 'axios';
+import { Memory, MemoryComment } from '@/types/memory';
 
-import { Memory } from '@/types/memory';
-
-// Referência à coleção
 const memoriesCollectionRef = collection(db, 'memories');
 
 interface CloudinaryUploadResult {
@@ -25,25 +25,33 @@ interface CloudinaryUploadResult {
   public_id: string;
 }
 
-// 📤 Upload de arquivo para Cloudinary
-const uploadFileToCloudinary = async (file: File): Promise<CloudinaryUploadResult> => {
+const uploadFileToCloudinary = async (
+  file: File
+): Promise<CloudinaryUploadResult> => {
+  const { data: signData } = await axios.post('/api/cloudinary/sign-upload', {
+    folder: 'memories',
+    tags: ['memory'],
+  }, { timeout: 10000 }); // 10-second timeout for signing
+
   const formData = new FormData();
   formData.append('file', file);
+  formData.append('api_key', signData.api_key);
+  formData.append('timestamp', signData.timestamp);
+  formData.append('signature', signData.signature);
+  formData.append('folder', 'memories');
+  formData.append('tags', ['memory'].join(',')); // Adicionado para corresponder à assinatura
 
-  const response = await fetch('/api/upload-cloudinary', {
-    method: 'POST',
-    body: formData,
-  });
+  const response = await axios.post(
+    `https://api.cloudinary.com/v1_1/${signData.cloud_name}/auto/upload`,
+    formData,
+    {
+      timeout: 60000, // 60-second timeout for upload
+    }
+  );
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to upload file to Cloudinary');
-  }
-
-  return response.json();
+  return response.data;
 };
 
-// 🗑️ Remoção de arquivo do Cloudinary
 const deleteFileFromCloudinary = async (publicId: string) => {
   const response = await fetch('/api/upload-cloudinary', {
     method: 'DELETE',
@@ -59,14 +67,15 @@ const deleteFileFromCloudinary = async (publicId: string) => {
   return response.json();
 };
 
-// ✅ 1. Adicionar nova memória
 export const addMemory = async (
   title: string,
-  description?: string,
-  isPublic?: boolean,
-  imageFiles?: File[],
-  videoFiles?: File[],
-  tags?: string[]
+  description: string = '',
+  isPublic: boolean = false,
+  imageFiles: File[] = [],
+  videoFiles: File[] = [],
+  tags: string[] = [],
+  onOverallProgress?: (progress: number) => void,
+  onUploadStartEnd?: (isUploading: boolean) => void
 ) => {
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
@@ -74,55 +83,150 @@ export const addMemory = async (
   const images: { url: string; publicId: string }[] = [];
   const videos: { url: string; publicId: string }[] = [];
 
-  // Upload de imagens
-  if (imageFiles?.length) {
-    for (const file of imageFiles) {
-      const result = await uploadFileToCloudinary(file);
-      images.push({ url: result.secure_url, publicId: result.public_id });
-    }
-  }
+  const totalFiles = imageFiles.length + videoFiles.length;
+  let uploadedFilesCount = 0;
 
-  // Upload de vídeos
-  if (videoFiles?.length) {
-    for (const file of videoFiles) {
-      const result = await uploadFileToCloudinary(file);
+  if (onUploadStartEnd) onUploadStartEnd(true);
+
+  const uploadPromises: Promise<void>[] = [];
+
+  const uploadFile = async (file: File, fileType: 'image' | 'video') => {
+    const result = await uploadFileToCloudinary(file);
+    if (fileType === 'image') {
+      images.push({ url: result.secure_url, publicId: result.public_id });
+    } else {
       videos.push({ url: result.secure_url, publicId: result.public_id });
     }
-  }
+    uploadedFilesCount++;
+    if (onOverallProgress) {
+      onOverallProgress(Math.round((uploadedFilesCount / totalFiles) * 100));
+    }
+  };
 
-  // Dados a serem salvos no Firestore
+  imageFiles.forEach(file => uploadPromises.push(uploadFile(file, 'image')));
+  videoFiles.forEach(file => uploadPromises.push(uploadFile(file, 'video')));
+
+  await Promise.all(uploadPromises);
+
+  if (onUploadStartEnd) onUploadStartEnd(false);
+
   const newMemoryData: Partial<Omit<Memory, 'id'>> = {
     userId: user.uid,
     title,
     description,
-    isPublic: isPublic || false,
+    isPublic,
     createdAt: new Date(),
-    tags: tags || [],
+    tags,
+    images,
+    videos,
   };
-
-  if (images.length > 0) newMemoryData.images = images;
-  if (videos.length > 0) newMemoryData.videos = videos;
 
   await addDoc(memoriesCollectionRef, newMemoryData as Omit<Memory, 'id'>);
 };
 
-// ✅ 2. Obter todas memórias do utilizador autenticado
-export const getMemories = async (pageSize: number = 10, lastDoc?: any, searchQuery?: string): Promise<{ memories: Memory[]; lastVisible: any }> => {
+export const updateMemory = async (
+  id: string,
+  title: string,
+  description: string,
+  isPublic: boolean,
+  imageFiles: File[] | null,
+  videoFiles: File[] | null,
+  existingImages: Array<{ url?: string; publicId?: string }> = [],
+  existingVideos: Array<{ url?: string; publicId?: string }> = [],
+  tags: string[] = [],
+  onOverallProgress?: (progress: number) => void,
+  onUploadStartEnd?: (isUploading: boolean) => void
+) => {
+  const user = auth.currentUser;
+  if (!user) throw new Error('User not authenticated');
+
+  const memoryRef = doc(db, 'memories', id);
+
+  const newImages: { url: string; publicId: string }[] = [];
+  const newVideos: { url: string; publicId: string }[] = [];
+
+  const filesToUpload = [...(imageFiles || []), ...(videoFiles || [])];
+  const totalFiles = filesToUpload.length;
+  let uploadedFilesCount = 0;
+
+  if (onUploadStartEnd) onUploadStartEnd(true);
+
+  const uploadPromises: Promise<void>[] = [];
+
+  const uploadFile = async (file: File, fileType: 'image' | 'video') => {
+    const result = await uploadFileToCloudinary(file);
+    if (fileType === 'image') {
+      newImages.push({ url: result.secure_url, publicId: result.public_id });
+    } else {
+      newVideos.push({ url: result.secure_url, publicId: result.public_id });
+    }
+    uploadedFilesCount++;
+    if (onOverallProgress) {
+      onOverallProgress(Math.round((uploadedFilesCount / totalFiles) * 100));
+    }
+  };
+
+  // Delete existing files if new ones are provided
+  if (imageFiles) {
+    for (const img of existingImages) {
+      if (img.publicId) await deleteFileFromCloudinary(img.publicId);
+    }
+  } else {
+    newImages.push(...(existingImages?.filter(img => img.url && img.publicId) as any[] || []));
+  }
+
+  if (videoFiles) {
+    for (const vid of existingVideos) {
+      if (vid.publicId) await deleteFileFromCloudinary(vid.publicId);
+    }
+  } else {
+    newVideos.push(...(existingVideos?.filter(vid => vid.url && vid.publicId) as any[] || []));
+  }
+
+  filesToUpload.forEach(file => {
+    if (imageFiles?.includes(file)) {
+      uploadPromises.push(uploadFile(file, 'image'));
+    } else if (videoFiles?.includes(file)) {
+      uploadPromises.push(uploadFile(file, 'video'));
+    }
+  });
+
+  await Promise.all(uploadPromises);
+
+  if (onUploadStartEnd) onUploadStartEnd(false);
+
+  const updatedData: Partial<Memory> = {
+    title,
+    description,
+    isPublic,
+    images: newImages,
+    videos: newVideos,
+    tags,
+  };
+
+  await updateDoc(memoryRef, updatedData);
+};
+
+export const getMemories = async (pageSize: number = 10, lastDoc?: any, searchQuery?: string, tagSearchQuery?: string): Promise<{ memories: Memory[]; lastVisible: any }> => {
   const user = auth.currentUser;
   if (!user) return { memories: [], lastVisible: null };
 
-  let q = query(
+  let q: Query = query(
     memoriesCollectionRef,
     where('userId', '==', user.uid),
     orderBy('createdAt', 'desc')
   );
 
   if (searchQuery) {
-    // For basic search, we can filter by title. Firestore doesn't support full-text search directly.
-    // For more advanced search, consider a dedicated search service like Algolia or ElasticSearch.
     q = query(q,
       where('title', '>=', searchQuery),
       where('title', '<=', searchQuery + '\uf8ff')
+    );
+  }
+
+  if (tagSearchQuery) {
+    q = query(q,
+      where('tags', 'array-contains', tagSearchQuery)
     );
   }
 
@@ -168,69 +272,6 @@ export const getPublicMemories = async (pageSize: number = 10, lastDoc?: any): P
   return { memories, lastVisible };
 };
 
-// ✅ 3. Atualizar memória existente
-export const updateMemory = async (
-  id: string,
-  title: string,
-  description: string,
-  isPublic: boolean,
-  imageFiles?: File[] | null,
-  videoFiles?: File[] | null,
-  existingImages?: Array<{ url?: string; publicId?: string }>,
-  existingVideos?: Array<{ url?: string; publicId?: string }>,
-  tags?: string[]
-) => {
-  const user = auth.currentUser;
-  if (!user) throw new Error('User not authenticated');
-
-  const memoryRef = doc(db, 'memories', id);
-
-  const newImages: { url: string; publicId: string }[] = [];
-  const newVideos: { url: string; publicId: string }[] = [];
-
-  // Handle image updates
-  if (imageFiles) {
-    // Delete old images
-    for (const img of existingImages || []) {
-      if (img.publicId) await deleteFileFromCloudinary(img.publicId);
-    }
-    // Upload new images
-    for (const file of imageFiles) {
-      const result = await uploadFileToCloudinary(file);
-      newImages.push({ url: result.secure_url, publicId: result.public_id });
-    }
-  } else {
-    newImages.push(...(existingImages?.filter(img => img.url && img.publicId) as any[] || []));
-  }
-
-  // Handle video updates
-  if (videoFiles) {
-    // Delete old videos
-    for (const vid of existingVideos || []) {
-      if (vid.publicId) await deleteFileFromCloudinary(vid.publicId);
-    }
-    // Upload new videos
-    for (const file of videoFiles) {
-      const result = await uploadFileToCloudinary(file);
-      newVideos.push({ url: result.secure_url, publicId: result.public_id });
-    }
-  } else {
-    newVideos.push(...(existingVideos?.filter(vid => vid.url && vid.publicId) as any[] || []));
-  }
-
-  const updatedData: Partial<Memory> = {
-    title,
-    description,
-    isPublic,
-    images: newImages,
-    videos: newVideos,
-    tags: tags || [],
-  };
-
-  await updateDoc(memoryRef, updatedData);
-};
-
-// ✅ 4. Deletar memória e arquivos associados
 export const deleteMemory = async (
   id: string,
   images?: Array<{ url: string; publicId: string }>,
@@ -258,12 +299,10 @@ export const deleteMemory = async (
 
   } catch (error) {
     console.error("Error deleting memory and associated files: ", error);
-    // Optionally re-throw the error or handle it as needed
     throw new Error("Failed to delete memory.");
   }
 };
 
-// ✅ 5. Toggle Like
 export const toggleLike = async (memoryId: string, userId: string) => {
   const memoryRef = doc(db, 'memories', memoryId);
   const memorySnap = await getDoc(memoryRef);
@@ -276,18 +315,15 @@ export const toggleLike = async (memoryId: string, userId: string) => {
   let currentLikes = memoryData.likes || [];
 
   if (currentLikes.includes(userId)) {
-    // Unlike
     currentLikes = currentLikes.filter(id => id !== userId);
   } else {
-    // Like
     currentLikes.push(userId);
   }
 
   await updateDoc(memoryRef, { likes: currentLikes });
 };
 
-// ✅ 6. Add Comment
-export const addComment = async (memoryId: string, comment: Comment) => {
+export const addComment = async (memoryId: string, comment: MemoryComment) => {
   const memoryRef = doc(db, 'memories', memoryId);
   const memorySnap = await getDoc(memoryRef);
 
@@ -301,7 +337,6 @@ export const addComment = async (memoryId: string, comment: Comment) => {
   await updateDoc(memoryRef, { comments: [...currentComments, comment] });
 };
 
-// ✅ 7. Obter todas as memórias para o Admin
 export const getAllMemoriesForAdmin = async (pageSize: number = 10, lastDoc?: any): Promise<{ memories: Memory[]; lastVisible: any }> => {
   let q = query(
     memoriesCollectionRef,
@@ -325,8 +360,23 @@ export const getAllMemoriesForAdmin = async (pageSize: number = 10, lastDoc?: an
   return { memories, lastVisible };
 };
 
-// ✅ 8. Obter o número total de memórias
 export const getTotalMemoriesCount = async (): Promise<number> => {
   const querySnapshot = await getDocs(memoriesCollectionRef);
   return querySnapshot.size;
+};
+
+export const getAllUniqueTags = async (): Promise<{ tag: string; count: number }[]> => {
+  const querySnapshot = await getDocs(memoriesCollectionRef);
+  const tagCounts: { [key: string]: number } = {};
+  querySnapshot.docs.forEach(doc => {
+    const data = doc.data() as Memory;
+    if (data.tags && Array.isArray(data.tags)) {
+      data.tags.forEach(tag => {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+      });
+    }
+  });
+  return Object.entries(tagCounts)
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count);
 };

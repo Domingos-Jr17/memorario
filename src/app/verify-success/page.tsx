@@ -13,18 +13,18 @@ export default function VerifySuccessPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border border-gray-200 text-center"
+        className="max-w-md w-full bg-background p-8 rounded-xl shadow-lg border border-primary text-center"
       >
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.2, type: 'spring', stiffness: 260, damping: 20 }}
-          className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100"
+          className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-success/20"
         >
           <CheckCircle className="h-10 w-10 text-green-600" />
         </motion.div>
@@ -38,7 +38,7 @@ export default function VerifySuccessPage() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleRedirect}
-          className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition"
+          className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 transition"
         >
           Continue to Login
         </motion.button>

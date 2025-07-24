@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Mail, Lock, LogIn, Loader2, UserPlus } from "lucide-react";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
+import { Input } from "@/components/ui/input";
 
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -59,9 +60,9 @@ export default function LoginPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"
+      className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8"
     >
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg border border-gray-200">
+      <div className="max-w-md w-full space-y-8 p-8 bg-background rounded-xl shadow-lg border border-primary">
         <div>
           <h2 className="mt-6 text-center text-4xl font-extrabold text-gray-900 tracking-tight">
             Sign in to your account
@@ -82,11 +83,11 @@ export default function LoginPage() {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 </div>
-                <input
+                <Input
                   id="email-address"
                   type="email"
                   autoComplete="email"
-                  className={`appearance-none rounded-t-md relative block w-full pl-10 pr-3 py-2 border placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm ${
+                  className={`rounded-t-md pl-10 ${
                     errors.email ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="Email address"
@@ -114,11 +115,11 @@ export default function LoginPage() {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 </div>
-                <input
+                <Input
                   id="password"
                   type="password"
                   autoComplete="current-password"
-                  className={`appearance-none rounded-b-md relative block w-full pl-10 pr-3 py-2 border placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm ${
+                  className={`rounded-b-md pl-10 ${
                     errors.password ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="Password"
@@ -145,8 +146,8 @@ export default function LoginPage() {
               disabled={isSubmitting}
               className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
                 isSubmitting
-                  ? "bg-indigo-400 cursor-not-allowed"
-                  : "bg-indigo-600 hover:bg-indigo-700"
+                  ? "bg-primary/70 cursor-not-allowed"
+                  : "bg-primary hover:bg-primary/90"
               } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-200 ease-in-out`}
               whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
               whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
@@ -172,7 +173,7 @@ export default function LoginPage() {
             <div className="w-full border-t border-gray-300" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-gray-500">
+            <span className="bg-background px-2 text-muted-foreground">
               or continue with
             </span>
           </div>

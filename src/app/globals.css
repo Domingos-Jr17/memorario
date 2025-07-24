@@ -1,19 +1,58 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --color-primary: 79 70 229;
+    --color-secondary: 16 185 129;
+    --color-error: 239 68 68;
+    --color-success: 34 197 94;
+    --color-background: 255 255 255;
+    --color-text: 31 41 55;
+    --color-primary-foreground: 255 255 255;
+    --color-secondary-foreground: 255 255 255;
+    --color-error-foreground: 255 255 255;
+    --color-success-foreground: 255 255 255;
+    --color-input: 229 231 235; /* gray-200 */
+    --color-ring: 14 165 233; /* sky-500 */
+    --color-muted-foreground: 156 163 175; /* gray-400 */
+    --color-accent: 243 244 246; /* gray-100 */
+    --color-accent-foreground: 17 24 39; /* gray-900 */
+  }
+
+  .dark {
+    --color-primary: 79 70 229; /* mesmo do modo claro */
+    --color-secondary: 16 185 129;
+    --color-error: 239 68 68;
+    --color-success: 34 197 94;
+    --color-background: 31 41 55;
+    --color-text: 249 250 251;
+    --color-input: 75 85 99; /* gray-600 */
+    --color-ring: 14 165 233; /* sky-500 */
+    --color-muted-foreground: 156 163 175; /* gray-400 */
+    --color-accent: 55 65 81; /* gray-700 */
+    --color-accent-foreground: 249 250 251; /* gray-50 */
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
   font-family: var(--font-geist-sans); /* Use Geist Sans font */
+}
+
+*:focus-visible {
+  outline: 2px solid rgb(var(--color-primary) / 0.8);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.bg-background {
+  background-color: rgb(var(--color-background));
+}
+.text-text {
+  color: rgb(var(--color-text));
+}
+.bg-primary {
+  background-color: rgb(var(--color-primary));
+}
+.bg-error {
+  background-color: rgb(var(--color-error));
 }

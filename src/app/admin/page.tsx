@@ -89,14 +89,14 @@ export default function AdminPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+      <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
             <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Admin Dashboard</h1>
             <motion.button
               onClick={handleLogout}
-              className="flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-md transition duration-200 ease-in-out"
+              className="flex items-center px-6 py-3 bg-error hover:bg-error/90 text-white font-semibold rounded-lg shadow-md transition duration-200 ease-in-out"
               aria-label="Logout from your account"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -108,7 +108,7 @@ export default function AdminPage() {
           </div>
 
           {/* Statistics Section (Placeholder) */}
-          <div className="bg-white shadow-lg rounded-xl p-6 mb-8 border border-gray-200">
+          <div className="bg-background shadow-lg rounded-xl p-6 mb-8 border border-primary">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Statistics</h2>
             <p className="text-gray-700">Total Memories: {totalMemoriesCount !== null ? totalMemoriesCount : 'Loading...'}</p>
             {/* TODO: Implement actual total memory count and user count from DB */}
@@ -119,16 +119,16 @@ export default function AdminPage() {
           {isLoadingMemories && memories.length === 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
               {[...Array(PAGE_SIZE)].map((_, index) => (
-                <div key={index} className="bg-white rounded-xl shadow-lg p-6 animate-pulse border border-gray-200">
-                  <div className="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-5/6 mb-6"></div>
-                  <div className="h-40 bg-gray-200 rounded w-full"></div>
+                <div key={index} className="bg-background rounded-xl shadow-lg p-6 animate-pulse border border-primary">
+                  <div className="h-6 bg-primary/90 rounded w-3/4 mb-4"></div>
+                  <div className="h-4 bg-primary/90 rounded w-full mb-2"></div>
+                  <div className="h-4 bg-primary/90 rounded w-5/6 mb-6"></div>
+                  <div className="h-40 bg-primary/90 rounded w-full"></div>
                 </div>
               ))}
             </div>
           ) : memories.length === 0 ? (
-            <div className="text-center py-12 px-4 bg-white rounded-lg shadow-md border border-gray-200">
+            <div className="text-center py-12 px-4 bg-background rounded-lg shadow-md border border-primary">
               <Info className="w-12 h-12 text-gray-400 mx-auto mb-4" aria-hidden="true" />
               <p className="text-xl font-semibold text-gray-700 mb-2">No memories found.</p>
             </div>
@@ -136,14 +136,14 @@ export default function AdminPage() {
             <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
               <AnimatePresence>
                 {memories.map((memory) => (
-                  <div key={memory.id} className="relative bg-white shadow-lg rounded-xl p-6 border border-gray-200 flex flex-col h-full">
+                  <div key={memory.id} className="relative bg-background shadow-lg rounded-xl p-6 border border-primary flex flex-col h-full">
                     <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">{memory.title}</h3>
                     <p className="text-gray-600 text-sm mb-2">By: {memory.userId}</p> {/* Displaying userId for now */}
                     <p className="text-gray-700 mb-4 flex-grow text-base leading-relaxed ck-content" dangerouslySetInnerHTML={{ __html: memory.description || '' }} />
                     <div className="flex justify-end mt-auto pt-4 border-t border-gray-100">
                       <motion.button
                         onClick={() => handleDelete(memory)}
-                        className="flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg shadow-sm transition duration-200 ease-in-out"
+                        className="flex items-center px-4 py-2 bg-error hover:bg-error/90 text-error-foreground font-medium rounded-lg shadow-sm transition duration-200 ease-in-out"
                         aria-label={`Delete memory: ${memory.title}`}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -165,7 +165,7 @@ export default function AdminPage() {
                 disabled={isLoadingMemories}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md transition duration-200 ease-in-out"
+                className="px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg shadow-md transition duration-200 ease-in-out"
               >
                 {isLoadingMemories ? "Loading more..." : "Load More"}
               </motion.button>
@@ -181,13 +181,13 @@ export default function AdminPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-background/50 flex items-center justify-center p-4 z-50"
           >
             <motion.div
               initial={{ scale: 0.9, y: 50 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 50 }}
-              className="bg-white rounded-lg p-6 shadow-xl max-w-sm w-full text-center"
+              className="bg-background rounded-lg p-6 shadow-xl max-w-sm w-full text-center"
             >
               <h3 className="text-xl font-bold text-gray-900 mb-4">Confirm Deletion</h3>
               <p className="text-gray-700 mb-6">
@@ -196,13 +196,13 @@ export default function AdminPage() {
               <div className="flex justify-center gap-4">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition"
+                  className="px-6 py-2 border border-input rounded-md text-text hover:bg-accent transition"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmDelete}
-                  className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+                  className="px-6 py-2 bg-error text-error-foreground rounded-md hover:bg-error/90 transition"
                 >
                   Delete
                 </button>

@@ -35,7 +35,7 @@ export const GoogleLoginButton = () => {
       whileHover={{ scale: loading ? 1 : 1.02 }}
       whileTap={{ scale: loading ? 1 : 0.98 }}
       aria-label="Sign in with Google"
-      className={`mt-6 w-full flex items-center justify-center px-4 py-2 rounded-md border border-gray-300 shadow-sm bg-white text-gray-700 hover:bg-gray-50 transition duration-150 ease-in-out ${
+      className={`mt-6 w-full flex items-center justify-center px-4 py-2 rounded-md border border-input shadow-sm bg-background text-text hover:bg-accent transition duration-150 ease-in-out ${
         loading ? "opacity-60 cursor-not-allowed" : ""
       }`}
     >

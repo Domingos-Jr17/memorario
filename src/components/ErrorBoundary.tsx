@@ -41,18 +41,18 @@ class ErrorBoundary extends Component<Props, State> {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="min-h-screen flex flex-col items-center justify-center bg-red-50 px-4 py-12"
+          className="min-h-screen flex flex-col items-center justify-center bg-error/10 px-4 py-12"
         >
-          <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border border-red-200 text-center">
-            <TriangleAlert className="h-16 w-16 text-red-500 mx-auto mb-6" />
-            <h2 className="text-3xl font-extrabold text-red-800 mb-4">Oops! Something went wrong.</h2>
-            <p className="text-gray-700 mb-6">
+          <div className="max-w-md w-full bg-background p-8 rounded-xl shadow-lg border border-error/20 text-center">
+            <TriangleAlert className="h-16 w-16 text-error mx-auto mb-6" />
+            <h2 className="text-3xl font-extrabold text-error/90 mb-4">Oops! Something went wrong.</h2>
+            <p className="text-text mb-6">
               We&apos;re sorry, but an unexpected error occurred. Please try refreshing the page.
             </p>
             {process.env.NODE_ENV === 'development' && this.state.error && (
-              <details className="text-left p-4 bg-gray-100 rounded-md overflow-auto max-h-60">
-                <summary className="font-semibold text-gray-800 cursor-pointer">Error Details</summary>
-                <pre className="mt-2 text-sm text-gray-600 whitespace-pre-wrap break-all">
+              <details className="text-left p-4 bg-accent rounded-md overflow-auto max-h-60">
+                <summary className="font-semibold text-accent-foreground cursor-pointer">Error Details</summary>
+                <pre className="mt-2 text-sm text-text/70 whitespace-pre-wrap break-all">
                   {this.state.error.toString()}
                   <br />
                   {this.state.errorInfo?.componentStack}
@@ -61,7 +61,7 @@ class ErrorBoundary extends Component<Props, State> {
             )}
             <button
               onClick={() => window.location.reload()}
-              className="mt-8 px-6 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition"
+              className="mt-8 px-6 py-3 bg-error text-error-foreground font-semibold rounded-lg shadow-md hover:bg-error/90 transition"
             >
               Refresh Page
             </button>

@@ -16,6 +16,7 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
+import { Input } from '@/components/ui/input';
 
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -87,9 +88,9 @@ export default function SignupPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8"
+      className="min-h-screen flex items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8"
     >
-      <div className="w-full max-w-md space-y-8 p-8 bg-white rounded-xl shadow-lg border border-gray-200">
+      <div className="w-full max-w-md space-y-8 p-8 bg-background rounded-xl shadow-lg border border-primary">
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-gray-900">Create your account</h2>
         </div>
@@ -97,13 +98,13 @@ export default function SignupPage() {
         <form className="space-y-5" onSubmit={handleSubmit(onSubmit)} noValidate>
           {/* Username */}
           <div>
-            <input
+            <Input
               id="username"
               type="text"
               placeholder="Username"
-              className={`w-full px-3 py-2 border ${
+              className={`${
                 errors.username ? 'border-red-500' : 'border-gray-300'
-              } rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+              }`}
               {...register("username")}
             />
             {errors.username && <p className="text-sm text-red-600 mt-1">{errors.username.message}</p>}
@@ -114,13 +115,13 @@ export default function SignupPage() {
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Mail className="h-5 w-5 text-gray-400" />
             </div>
-            <input
+            <Input
               id="email"
               type="email"
               placeholder="Email address"
-              className={`w-full pl-10 pr-3 py-2 border ${
+              className={`pl-10 ${
                 errors.email ? 'border-red-500' : 'border-gray-300'
-              } rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+              }`}
               {...register("email")}
             />
             {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>}
@@ -131,13 +132,13 @@ export default function SignupPage() {
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Lock className="h-5 w-5 text-gray-400" />
             </div>
-            <input
+            <Input
               id="password"
               type={showPassword ? 'text' : 'password'}
               placeholder="Password"
-              className={`w-full pl-10 pr-10 py-2 border ${
+              className={`pl-10 pr-10 ${
                 errors.password ? 'border-red-500' : 'border-gray-300'
-              } rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+              }`}
               {...register("password")}
             />
             <button
@@ -156,13 +157,13 @@ export default function SignupPage() {
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Lock className="h-5 w-5 text-gray-400" />
             </div>
-            <input
+            <Input
               id="confirmPassword"
               type={showConfirmPassword ? 'text' : 'password'}
               placeholder="Confirm Password"
-              className={`w-full pl-10 pr-10 py-2 border ${
+              className={`pl-10 pr-10 ${
                 errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-              } rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+              }`}
               {...register("confirmPassword")}
             />
             <button
@@ -187,8 +188,8 @@ export default function SignupPage() {
             whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
             className={`w-full flex justify-center items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none transition duration-200 ${
               isSubmitting
-                ? 'bg-indigo-400 cursor-not-allowed'
-                : 'bg-indigo-600 hover:bg-indigo-700'
+                ? 'bg-primary/70 cursor-not-allowed'
+                : 'bg-primary hover:bg-primary/90'
             }`}
           >
             {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <><UserPlus className="h-5 w-5" /> Sign up</>}
@@ -206,7 +207,7 @@ export default function SignupPage() {
         <button
           onClick={handleGoogleSignIn}
           disabled={isSubmitting}
-          className="w-full flex items-center justify-center mt-4 gap-2 px-4 py-2 text-sm font-medium border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 transition"
+          className="w-full flex items-center justify-center mt-4 gap-2 px-4 py-2 text-sm font-medium border border-input rounded-md bg-background text-text hover:bg-accent transition"
         >
           <FcGoogle className="h-5 w-5" />
           Sign up with Google
